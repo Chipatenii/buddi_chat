@@ -1,7 +1,7 @@
 # Buddi Chat (Real-Time Chat Application)
 
 ## Overview
-The Real-Time Chat Application is a web-based platform that allows users to join chat rooms, exchange real-time messages, and personalize their profiles. Built with scalability and responsiveness in mind, this project leverages WebSocket technology to deliver seamless real-time communication.
+The Buddi Chat Application is a web-based platform that allows users to join chat rooms, exchange real-time messages, and personalize their profiles. Built with scalability and responsiveness in mind, this project leverages WebSocket technology to deliver seamless real-time communication.
 
 ### Features
 - Real-time messaging via WebSocket.
