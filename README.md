@@ -47,8 +47,8 @@ The Real-Time Chat Application is a web-based platform that allows users to join
 ### Steps
 1. **Clone the Repository**:
    ```bash
-   git clone <repository-url>
-   cd <project-directory>
+   git clone <https://github.com/Chipatenii/buddi_chat>
+   cd <buddi_chat>
    ```
 2. **Install Dependencies**:
    ```bash
