@@ -1,0 +1,15 @@
+{
+  "name": "buddi_chat",
+  "version": "1.0.0",
+  "description": "The Real-Time Chat Application is a web-based platform that allows users to join chat rooms, exchange real-time messages, and personalize their profiles. Built with scalability and responsiveness in mind, this project leverages WebSocket technology to deliver seamless real-time communication.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
