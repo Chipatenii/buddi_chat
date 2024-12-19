@@ -59,8 +59,8 @@ The Real-Time Chat Application is a web-based platform that allows users to join
    - Add the following variables:
      ```env
      PORT=3000
-     MONGO_URI=<your-mongodb-connection-string>
-     JWT_SECRET=<your-jwt-secret>
+     MONGO_URI
+     JWT_SECRET
      ```
 4. **Run the Server**:
    - For development:
@@ -101,7 +101,7 @@ To deploy the application:
 
 ## Project Structure
 ```
-project-directory
+buddi_chat
 ├── public                 # Static files
 ├── src
 │   ├── components         # React components
