@@ -1,7 +1,7 @@
-# Real-Time Chat Application
+# Buddi Chat (Real-Time Chat Application)
 
 ## Overview
-The Real-Time Chat Application is a web-based platform that allows users to join chat rooms, exchange real-time messages, and personalize their profiles. Built with scalability and responsiveness in mind, this project leverages WebSocket technology to deliver seamless real-time communication.
+The Buddi Chat Application is a web-based platform that allows users to join chat rooms, exchange real-time messages, and personalize their profiles. Built with scalability and responsiveness in mind, this project leverages WebSocket technology to deliver seamless real-time communication.
 
 ### Features
 - Real-time messaging via WebSocket.
@@ -47,8 +47,8 @@ The Real-Time Chat Application is a web-based platform that allows users to join
 ### Steps
 1. **Clone the Repository**:
    ```bash
-   git clone <repository-url>
-   cd <project-directory>
+   git clone <https://github.com/Chipatenii/buddi_chat>
+   cd <buddi_chat>
    ```
 2. **Install Dependencies**:
    ```bash
@@ -59,8 +59,8 @@ The Real-Time Chat Application is a web-based platform that allows users to join
    - Add the following variables:
      ```env
      PORT=3000
-     MONGO_URI=<your-mongodb-connection-string>
-     JWT_SECRET=<your-jwt-secret>
+     MONGO_URI
+     JWT_SECRET
      ```
 4. **Run the Server**:
    - For development:
@@ -101,7 +101,7 @@ To deploy the application:
 
 ## Project Structure
 ```
-project-directory
+buddi_chat
 ├── public                 # Static files
 ├── src
 │   ├── components         # React components
