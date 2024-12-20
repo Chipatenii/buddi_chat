@@ -1,1 +1,17 @@
 node_modules/
+
+build/
+dist/
+coverage/
+.env
+
+# Logs
+*.log
+
+# System-specific or editor-specific files
+.DS_Store
+.idea/
+.vscode/
+
+# Temp files
+*.tmp
