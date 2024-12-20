@@ -1,32 +1,34 @@
+# Node.js Dependencies
 node_modules/
+
+# Build and Distribution
 build/
 dist/
-coverage/
-.env
+
+# Temporary Files
+*.tmp
+
 # Logs
 *.log
-# System-specific or editor-specific files
-.DS_Store
-.idea/
-.vscode/
-# Temp files
-*.tmp
-.pnp
-.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# testing
-coverage
-
-# production
-build
-
-# misc
-.DS_Store
+# Environment Variables
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Code Coverage
+coverage/
+
+# Editor and System-Specific Files
+.idea/
+.vscode/
+.DS_Store
+
+# Package Manager
+.pnp
+.pnp.js
