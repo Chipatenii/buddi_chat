@@ -1,24 +1,22 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import ChatRoomPage from './pages/ChatRoomPage';
 import HomePage from './pages/HomePage';
-import Header from './components/Header';
-import Footer from './components/Footer';
+import ChatRoomPage from './pages/ChatRoomPage';
+import SettingsPage from './pages/SettingsPage';
+import UserProfilePage from './pages/UserProfilePage';
+import ErrorPage from './pages/ErrorPage';
 
 const App = () => {
-    return (
-        <Router>
-            <div className="app">
-                <Header />
-                <main>
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/chatroom" element={<ChatRoomPage />} />
-                    </Routes>
-                </main>
-                <Footer />
-            </div>
-        </Router>
-    );
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/chat-room" element={<ChatRoomPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/profile" element={<UserProfilePage />} />
+        <Route path="*" element={<ErrorPage />} />
+      </Routes>
+    </Router>
+  );
 };
 
 export default App;

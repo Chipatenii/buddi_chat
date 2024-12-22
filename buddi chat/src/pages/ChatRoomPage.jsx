@@ -1,53 +1,42 @@
-import { useEffect, useState } from 'react';
-import { connectWebSocket, sendMessage, closeWebSocket } from '../services/webSocketService';
+import { useState, useEffect } from 'react';
+import ChatSidebar from '../components/ChatSidebar';
+import ChatMessage from '../components/ChatMessage';
+import ChatInput from '../components/ChatInput';
+import { connectWebSocket, closeWebSocket, sendMessage } from '../services/webSocketService';
 
 const ChatRoomPage = () => {
-    const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [chatRooms] = useState(['General', 'Random', 'Tech']);
+  const [currentRoom, setCurrentRoom] = useState('General');
 
-    useEffect(() => {
-        connectWebSocket();
+  useEffect(() => {
+    connectWebSocket((newMessage) => setMessages((prev) => [...prev, newMessage]));
 
-        // Listen for messages
-        const handleMessage = (event) => {
-            const newMessage = JSON.parse(event.data);
-            setMessages((prevMessages) => [...prevMessages, newMessage]);
-        };
-
-        window.addEventListener('message', handleMessage);
-
-        return () => {
-            closeWebSocket();
-            window.removeEventListener('message', handleMessage);
-        };
-    }, []);
-
-    const handleSendMessage = () => {
-        if (message.trim()) {
-            sendMessage({ user: 'User1', message });
-            setMessage('');
-        }
+    return () => {
+      closeWebSocket();
     };
+  }, []);
 
-    return (
-        <div>
-            <h2>Chat Room</h2>
-            <div>
-                {messages.map((msg, index) => (
-                    <p key={index}>
-                        <strong>{msg.user}:</strong> {msg.message}
-                    </p>
-                ))}
-            </div>
-            <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type a message"
-            />
-            <button onClick={handleSendMessage}>Send</button>
+  const handleSendMessage = (message) => {
+    const newMessage = { user: 'You', message, timestamp: new Date() };
+    setMessages((prev) => [...prev, newMessage]);
+    sendMessage(newMessage);
+  };
+
+  return (
+    <div className="chat-room-page">
+      <ChatSidebar chatRooms={chatRooms} onRoomSelect={setCurrentRoom} />
+      <main>
+        <h2>{currentRoom} Room</h2>
+        <div className="messages">
+          {messages.map((msg, index) => (
+            <ChatMessage key={index} user={msg.user} message={msg.message} timestamp={msg.timestamp} />
+          ))}
         </div>
-    );
+        <ChatInput onSendMessage={handleSendMessage} />
+      </main>
+    </div>
+  );
 };
 
 export default ChatRoomPage;
