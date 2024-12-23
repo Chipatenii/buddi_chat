@@ -1,22 +1,20 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const HomePage = () => {
   return (
-    <div className="bg-blue-500 text-white h-screen flex flex-col justify-center items-center">
-      <h1 className="text-4xl font-bold mb-4">Welcome to Buddi Chat</h1>
-      <p className="text-lg mb-6">Start chatting with your friends in real time!</p>
-      <div className="space-x-4">
-        <Link to="/chat-room" className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
-          Go to Chat Room
-        </Link>
-        <Link to="/login" className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800">
-          Login
-        </Link>
-        <Link to="/register" className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800">
-          Register
-        </Link>
-      </div>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-grow container mx-auto p-4 text-center">
+        <h1 className="text-4xl font-bold text-blue">Welcome to Buddi Chat</h1>
+        <p className="mt-4 text-lg text-gray-700">
+          Start chatting with your friends in real time!
+        </p>
+        <button className="mt-6 bg-orange hover:bg-orange-600 text-white font-bold py-2 px-4 rounded">
+          Join Chat Room
+        </button>
+      </main>
+      <Footer />
     </div>
   );
 };

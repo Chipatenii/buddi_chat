@@ -1,22 +1,28 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Logout from './Logout'; 
 
 const Header = () => {
   return (
-    <header className="bg-gray-800 text-white p-4 flex justify-between items-center">
-      <h1 className="text-xl font-bold">Buddi Chat</h1>
-      <nav className="flex items-center">
+    <header className="bg-blue text-white py-4 px-6">
+      <h1 className="text-2xl font-bold">Buddi Chat</h1>
+      <nav className="mt-2">
         <ul className="flex space-x-4">
           <li>
-            <Link to="/" className="hover:text-gray-300">Home</Link>
+            <Link to="/" className="hover:text-orange">Home</Link>
           </li>
           <li>
-            <Link to="/chatroom" className="hover:text-gray-300">Chat Room</Link>
+            <Link to="/chat-room" className="hover:text-orange">Chat Room</Link>
+          </li>
+          <li>
+            <Link to="/profile" className="hover:text-orange">Profile</Link>
+          </li>
+          <li>
+            <Link to="/settings" className="hover:text-orange">Settings</Link>
+          </li>
+          <li>
+            <Link to="/login" className="hover:text-orange">Login</Link>
           </li>
         </ul>
-        {/* Add Logout button */}
-        <Logout />
       </nav>
     </header>
   );
