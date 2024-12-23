@@ -1,27 +1,23 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Header = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    navigate('/login');
+  };
+
   return (
-    <header className="bg-blue text-white py-4 px-6">
+    <header className="bg-blue text-white py-4 px-6 flex justify-between items-center">
       <h1 className="text-2xl font-bold">Buddi Chat</h1>
-      <nav className="mt-2">
+      <nav>
         <ul className="flex space-x-4">
-          <li>
-            <Link to="/" className="hover:text-orange">Home</Link>
-          </li>
-          <li>
-            <Link to="/chat-room" className="hover:text-orange">Chat Room</Link>
-          </li>
-          <li>
-            <Link to="/profile" className="hover:text-orange">Profile</Link>
-          </li>
-          <li>
-            <Link to="/settings" className="hover:text-orange">Settings</Link>
-          </li>
-          <li>
-            <Link to="/login" className="hover:text-orange">Login</Link>
-          </li>
+          <li><Link to="/">Home</Link></li>
+          <li><Link to="/chat-room">Chat Room</Link></li>
+          <li><Link to="/profile">Profile</Link></li>
+          <li><Link to="/settings">Settings</Link></li>
+          <li><button onClick={handleLogout} className="hover:text-orange">Logout</button></li>
         </ul>
       </nav>
     </header>

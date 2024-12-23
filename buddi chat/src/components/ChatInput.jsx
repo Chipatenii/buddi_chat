@@ -1,30 +1,36 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 
-const ChatInput = ({ onSendMessage }) => {
+const ChatInput = ({ onSend }) => {
   const [message, setMessage] = useState('');
 
   const handleSend = () => {
     if (message.trim()) {
-      onSendMessage(message);
+      onSend(message);
       setMessage('');
     }
   };
 
   return (
-    <div className="chat-input">
+    <div className="flex items-center gap-2 p-4 border-t border-gray-300">
       <input
         type="text"
+        className="flex-grow p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue"
+        placeholder="Type your message..."
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type your message..."
       />
-      <button onClick={handleSend}>Send</button>
+      <button
+        className="bg-blue text-white py-2 px-4 rounded-md hover:bg-blue-600"
+        onClick={handleSend}
+      >
+        Send
+      </button>
     </div>
   );
 };
 ChatInput.propTypes = {
-  onSendMessage: PropTypes.func.isRequired,
+  onSend: PropTypes.func.isRequired,
 };
 
 export default ChatInput;

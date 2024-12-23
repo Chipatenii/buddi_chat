@@ -1,40 +1,21 @@
-import React, { useState } from 'react';
 
-const UserProfile = () => {
-  const [username, setUsername] = useState('John Doe');
-  const [profilePicture, setProfilePicture] = useState(null);
+import PropTypes from 'prop-types';
 
-  const handleProfileUpdate = () => {
-    alert('Profile updated successfully!');
-  };
-
+const UserProfile = ({ user }) => {
   return (
-    <div className="user-profile">
-      <h2>User Profile</h2>
-      <div className="profile-picture">
-        {profilePicture ? (
-          <img src={profilePicture} alt="Profile" />
-        ) : (
-          <div className="placeholder">No Picture</div>
-        )}
-        <input
-          type="file"
-          onChange={(e) => setProfilePicture(URL.createObjectURL(e.target.files[0]))}
-        />
-      </div>
-      <div className="profile-details">
-        <label>
-          Username:
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </label>
-      </div>
-      <button onClick={handleProfileUpdate}>Update Profile</button>
+    <div className="container mx-auto p-6">
+      <h2 className="text-3xl font-bold mb-4">User Profile</h2>
+      <p>Name: {user.name}</p>
+      <p>Email: {user.email}</p>
     </div>
   );
+};
+
+UserProfile.propTypes = {
+  user: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    email: PropTypes.string.isRequired,
+  }).isRequired,
 };
 
 export default UserProfile;

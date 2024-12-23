@@ -1,18 +1,28 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
-const ChatSidebar = ({ chatRooms, onRoomSelect }) => {
+const ChatSidebar = ({ users }) => {
   return (
-    <aside className="chat-sidebar">
-      <h3>Chat Rooms</h3>
-      <ul>
-        {chatRooms.map((room, index) => (
-          <li key={index} onClick={() => onRoomSelect(room)}>
-            {room}
+    <aside className="w-64 bg-gray-100 h-screen p-4 border-r border-gray-300">
+      <h2 className="text-xl font-bold mb-4">Active Users</h2>
+      <ul className="space-y-2">
+        {users.map((user, index) => (
+          <li key={index} className="p-2 bg-white rounded-md shadow hover:bg-blue-100">
+            <Link to={`/profile/${user.id}`}>{user.name}</Link>
           </li>
         ))}
       </ul>
     </aside>
   );
+};
+
+ChatSidebar.propTypes = {
+  users: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      name: PropTypes.string.isRequired,
+    })
+  ).isRequired,
 };
 
 export default ChatSidebar;
