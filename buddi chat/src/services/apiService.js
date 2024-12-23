@@ -1,10 +1,16 @@
 import axios from 'axios';
 
-const apiClient = axios.create({
-    baseURL: 'http://localhost:5000',
+const api = axios.create({
+    baseURL: 'http://localhost:5000/api', // Backend base URL
 });
 
-export const fetchMessages = async () => {
-    const response = await apiClient.get('/messages');
-    return response.data;
-};
+// Add token to requests
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+export default api;

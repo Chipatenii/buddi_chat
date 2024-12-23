@@ -1,6 +1,8 @@
 const express = require('express');
 const http = require('http');
 const { setupWebSocket } = require('./sockets/socket');
+const protectedRoutes = require('./routes/protectedRoutes');
+app.use('/api/protected', protectedRoutes);
 
 const app = express();
 const server = http.createServer(app);
