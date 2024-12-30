@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom';
 
 const ErrorPage = () => {
   return (
-    <div className="error-page">
-      <h2>404 - Page Not Found</h2>
-      <p>Sorry, the page you&apos;re looking for doesn&apos;t exist.</p>
-      <Link to="/">Return to Home</Link>
+    <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 text-center">
+      <h1 className="display-1 text-danger">404</h1>
+      <p className="text-muted">Page Not Found</p>
+      <Link to="/" className="btn btn-primary mt-4">
+        Go Back Home
+      </Link>
     </div>
   );
 };
