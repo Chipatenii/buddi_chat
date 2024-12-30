@@ -1,16 +1,21 @@
-import { Link } from 'react-router-dom';
+// filepath: /c:/Users/Innocent C. Manda/Documents/buddi_chat/buddi chat/src/pages/HomePage.jsx
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const HomePage = () => {
   return (
-    <div className="d-flex flex-column align-items-center justify-content-center min-vh-100">
-      <h1 className="display-4 fw-bold mb-4">Welcome to Buddi Chat</h1>
-      <p className="text-muted">Start chatting with your friends in real time!</p>
-      <Link
-        to="/chat-room"
-        className="mt-4 btn btn-primary"
-      >
-        Join Chat Room
-      </Link>
+    <div className="d-flex flex-column min-vh-100">
+      <Header />
+      <main className="flex-grow-1 container p-4 text-center">
+        <h1 className="display-4 fw-bold text-primary">Welcome to Buddi Chat</h1>
+        <p className="mt-4 fs-5 text-muted">
+          Start chatting with your friends in real time!
+        </p>
+        <button className="mt-4 btn btn-warning">
+          Join Chat Room
+        </button>
+      </main>
+      <Footer />
     </div>
   );
 };

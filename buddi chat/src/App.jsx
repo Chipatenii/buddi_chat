@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ChatRoomPage from './pages/ChatRoomPage';
 import SettingsPage from './pages/SettingsPage';
@@ -8,13 +8,14 @@ import ErrorPage from './pages/ErrorPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PrivateRoute from './components/PrivateRoute';
+import Logout from './components/Logout';
 
 const App = () => {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
+        {/* Redirect to Register Page by default */}
+        <Route path="/" element={<Navigate to="/register" />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
@@ -43,6 +44,7 @@ const App = () => {
             </PrivateRoute>
           }
         />
+        <Route path="/logout" element={<Logout />} />
 
         {/* Error Page */}
         <Route path="*" element={<ErrorPage />} />
