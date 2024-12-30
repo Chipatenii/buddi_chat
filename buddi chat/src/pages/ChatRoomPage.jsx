@@ -24,17 +24,22 @@ const ChatRoomPage = () => {
   };
 
   return (
-    <div className="d-flex">
-      <ChatSidebar chatRooms={chatRooms} onRoomSelect={setCurrentRoom} />
-      <main className="flex-grow-1 p-4">
-        <h2 className="mb-4">{currentRoom} Room</h2>
-        <div className="messages mb-4">
-          {messages.map((msg, index) => (
-            <ChatMessage key={index} user={msg.user} message={msg.message} timestamp={msg.timestamp} />
-          ))}
-        </div>
-        <ChatInput onSendMessage={handleSendMessage} />
-      </main>
+    <div className="d-flex flex-column min-vh-100">
+      <header>
+        <h1 className="text-center my-4">Chat Room</h1>
+      </header>
+      <div className="d-flex flex-grow-1">
+        <ChatSidebar chatRooms={chatRooms} onRoomSelect={setCurrentRoom} />
+        <main className="flex-grow-1 p-4">
+          <h2 className="mb-4">{currentRoom} Room</h2>
+          <div className="messages mb-4">
+            {messages.map((msg, index) => (
+              <ChatMessage key={index} user={msg.user} message={msg.message} timestamp={msg.timestamp} />
+            ))}
+          </div>
+          <ChatInput onSend={handleSendMessage} />
+        </main>
+      </div>
     </div>
   );
 };

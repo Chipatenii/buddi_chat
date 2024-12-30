@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import Header from './Header';
-import Footer from './Footer';
-import ChatMessage from './ChatMessage';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import ChatMessage from '../components/ChatMessage';
 import { connectWebSocket, sendMessage, closeWebSocket } from '../services/webSocketService';
 
 const ChatRoomPage = () => {
@@ -19,14 +19,16 @@ const ChatRoomPage = () => {
   }, []);
 
   const handleSendMessage = () => {
-    sendMessage({ user: 'You', message: newMessage });
-    setNewMessage('');
+    if (newMessage.trim()) {
+      sendMessage({ user: 'You', message: newMessage, timestamp: Date.now() });
+      setNewMessage('');
+    }
   };
 
   return (
-    <div>
+    <div className="d-flex flex-column min-vh-100">
       <Header />
-      <main className="container my-4">
+      <main className="flex-grow-1 container my-4">
         <h2 className="mb-4">Chat Room</h2>
         <div className="chat-container mb-4">
           {messages.map((msg, index) => (

@@ -1,4 +1,3 @@
-// filepath: /c:/Users/Innocent C. Manda/Documents/buddi_chat/buddi chat/src/pages/RegisterPage.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../services/apiService';

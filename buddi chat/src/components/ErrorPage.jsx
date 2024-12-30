@@ -5,10 +5,7 @@ const ErrorPage = () => {
     <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 text-center">
       <h1 className="display-1 fw-bold text-danger">404</h1>
       <p className="text-muted">Page Not Found</p>
-      <Link
-        to="/"
-        className="mt-4 btn btn-primary"
-      >
+      <Link to="/" className="mt-4 btn btn-primary">
         Go Back Home
       </Link>
     </div>

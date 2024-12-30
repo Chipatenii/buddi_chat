@@ -1,4 +1,3 @@
-// filepath: /c:/Users/Innocent C. Manda/Documents/buddi_chat/buddi chat/src/pages/HomePage.jsx
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 

@@ -15,7 +15,7 @@ const RegisterPage = () => {
             const response = await axios.post('/api/register', { username, email, password });
             if (response.status === 201) {
                 alert('Registration successful! You can now log in.');
-                navigate('/'); // Redirect to login
+                navigate('/login'); // Redirect to login
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Something went wrong');
@@ -76,7 +76,7 @@ const RegisterPage = () => {
                     Already have an account?{' '}
                     <span
                         className="text-primary cursor-pointer"
-                        onClick={() => navigate('/')}
+                        onClick={() => navigate('/login')}
                     >
                         Login here
                     </span>
