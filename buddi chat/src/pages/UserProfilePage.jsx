@@ -2,8 +2,8 @@ import UserProfile from '../components/UserProfile';
 
 const UserProfilePage = () => {
   return (
-    <div className="user-profile-page">
-      <h2>Profile</h2>
+    <div className="container my-4">
+      <h2 className="mb-4">Profile</h2>
       <UserProfile />
     </div>
   );

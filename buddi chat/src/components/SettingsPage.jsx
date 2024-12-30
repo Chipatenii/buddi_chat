@@ -9,28 +9,37 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="settings-page">
-      <h2>Settings</h2>
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            checked={notifications}
-            onChange={() => setNotifications(!notifications)}
-          />
+    <div className="container my-4">
+      <h2 className="mb-4">Settings</h2>
+      <div className="form-check mb-3">
+        <input
+          type="checkbox"
+          className="form-check-input"
+          id="notifications"
+          checked={notifications}
+          onChange={() => setNotifications(!notifications)}
+        />
+        <label className="form-check-label" htmlFor="notifications">
           Enable Notifications
         </label>
       </div>
-      <div>
-        <label>
+      <div className="mb-3">
+        <label htmlFor="theme" className="form-label">
           Theme:
-          <select value={theme} onChange={(e) => setTheme(e.target.value)}>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
         </label>
+        <select
+          id="theme"
+          className="form-select"
+          value={theme}
+          onChange={(e) => setTheme(e.target.value)}
+        >
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
       </div>
-      <button onClick={handleSaveSettings}>Save Settings</button>
+      <button className="btn btn-primary" onClick={handleSaveSettings}>
+        Save Settings
+      </button>
     </div>
   );
 };

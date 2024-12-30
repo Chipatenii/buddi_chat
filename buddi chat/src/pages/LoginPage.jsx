@@ -21,40 +21,40 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
             <form
                 onSubmit={handleLogin}
-                className="bg-white p-8 rounded shadow-md max-w-sm w-full"
+                className="bg-white p-4 rounded shadow-sm w-100 max-w-sm"
             >
-                <h1 className="text-2xl font-bold mb-4">Login</h1>
-                {error && <p className="text-red-500 mb-4">{error}</p>}
-                <div className="mb-4">
-                    <label htmlFor="username" className="block text-sm font-medium">
+                <h1 className="h4 mb-4">Login</h1>
+                {error && <p className="text-danger mb-4">{error}</p>}
+                <div className="mb-3">
+                    <label htmlFor="username" className="form-label">
                         Username
                     </label>
                     <input
                         id="username"
                         type="text"
-                        className="mt-1 block w-full px-4 py-2 border rounded"
+                        className="form-control"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                     />
                 </div>
-                <div className="mb-6">
-                    <label htmlFor="password" className="block text-sm font-medium">
+                <div className="mb-3">
+                    <label htmlFor="password" className="form-label">
                         Password
                     </label>
                     <input
                         id="password"
                         type="password"
-                        className="mt-1 block w-full px-4 py-2 border rounded"
+                        className="form-control"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
                 <button
                     type="submit"
-                    className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                    className="btn btn-primary w-100"
                 >
                     Login
                 </button>

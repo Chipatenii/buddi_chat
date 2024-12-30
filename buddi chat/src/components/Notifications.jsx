@@ -2,16 +2,16 @@ import PropTypes from 'prop-types';
 
 const Notifications = ({ notifications }) => {
   return (
-    <div className="p-4 border border-gray-300 rounded-md bg-white shadow">
-      <h2 className="text-lg font-bold mb-2">Notifications</h2>
+    <div className="p-4 border border-secondary rounded bg-white shadow-sm">
+      <h2 className="h5 fw-bold mb-2">Notifications</h2>
       {notifications.length > 0 ? (
-        <ul className="space-y-2">
+        <ul className="list-unstyled">
           {notifications.map((notification, index) => (
-            <li key={index} className="text-gray-700">{notification}</li>
+            <li key={index} className="text-dark">{notification}</li>
           ))}
         </ul>
       ) : (
-        <p className="text-gray-500">No new notifications.</p>
+        <p className="text-muted">No new notifications.</p>
       )}
     </div>
   );

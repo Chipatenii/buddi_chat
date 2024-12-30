@@ -12,16 +12,16 @@ const ChatInput = ({ onSend }) => {
   };
 
   return (
-    <div className="flex items-center gap-2 p-4 border-t border-gray-300">
+    <div className="d-flex align-items-center gap-2 p-4 border-top border-secondary">
       <input
         type="text"
-        className="flex-grow p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue"
+        className="form-control flex-grow-1"
         placeholder="Type your message..."
         value={message}
         onChange={(e) => setMessage(e.target.value)}
       />
       <button
-        className="bg-blue text-white py-2 px-4 rounded-md hover:bg-blue-600"
+        className="btn btn-primary"
         onClick={handleSend}
       >
         Send
@@ -29,6 +29,7 @@ const ChatInput = ({ onSend }) => {
     </div>
   );
 };
+
 ChatInput.propTypes = {
   onSend: PropTypes.func.isRequired,
 };

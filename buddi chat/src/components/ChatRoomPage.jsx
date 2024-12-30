@@ -26,9 +26,9 @@ const ChatRoomPage = () => {
   return (
     <div>
       <Header />
-      <main>
-        <h2>Chat Room</h2>
-        <div className="chat-container">
+      <main className="container my-4">
+        <h2 className="mb-4">Chat Room</h2>
+        <div className="chat-container mb-4">
           {messages.map((msg, index) => (
             <ChatMessage
               key={index}
@@ -38,14 +38,15 @@ const ChatRoomPage = () => {
             />
           ))}
         </div>
-        <div className="message-input">
+        <div className="d-flex">
           <input
             type="text"
+            className="form-control me-2"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your message"
           />
-          <button onClick={handleSendMessage}>Send</button>
+          <button className="btn btn-primary" onClick={handleSendMessage}>Send</button>
         </div>
       </main>
       <Footer />

@@ -4,13 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Buddi Chat</title>
-  <!-- Include Tailwind CSS -->
-  <link href="/src/output.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+<body class="bg-light text-dark">
   <!-- React will mount here -->
-  <div id="root" class="min-h-screen flex flex-col"></div>
+  <div id="root" class="min-vh-100 d-flex flex-column"></div>
 
-  <!-- Ensure you have included Vite or Webpack's JavaScript bundle -->
+  <!-- Include Vite's JavaScript bundle -->
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

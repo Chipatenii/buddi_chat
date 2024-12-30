@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 
 const ChatMessage = ({ user, message, timestamp }) => {
   return (
-    <div className="flex flex-col p-4 border-b border-gray-200">
-      <span className="text-sm font-bold text-gray-600">{user}</span>
-      <p className="text-gray-800">{message}</p>
-      <span className="text-xs text-gray-500">{new Date(timestamp).toLocaleTimeString()}</span>
+    <div className="d-flex flex-column p-3 border-bottom border-secondary">
+      <span className="small fw-bold text-secondary">{user}</span>
+      <p className="text-dark">{message}</p>
+      <span className="text-muted small">{new Date(timestamp).toLocaleTimeString()}</span>
     </div>
   );
 };

@@ -21,15 +21,27 @@ const App = () => {
         {/* Protected Routes */}
         <Route
           path="/chat-room"
-          element={<PrivateRoute element={<ChatRoomPage />} />}
+          element={
+            <PrivateRoute>
+              <ChatRoomPage />
+            </PrivateRoute>
+          }
         />
         <Route
           path="/settings"
-          element={<PrivateRoute element={<SettingsPage />} />}
+          element={
+            <PrivateRoute>
+              <SettingsPage />
+            </PrivateRoute>
+          }
         />
         <Route
           path="/profile"
-          element={<PrivateRoute element={<UserProfilePage />} />}
+          element={
+            <PrivateRoute>
+              <UserProfilePage />
+            </PrivateRoute>
+          }
         />
 
         {/* Error Page */}

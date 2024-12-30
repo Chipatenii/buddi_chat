@@ -3,14 +3,14 @@ import Footer from '../components/Footer';
 
 const HomePage = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="d-flex flex-column min-vh-100">
       <Header />
-      <main className="flex-grow container mx-auto p-4 text-center">
-        <h1 className="text-4xl font-bold text-blue">Welcome to Buddi Chat</h1>
-        <p className="mt-4 text-lg text-gray-700">
+      <main className="flex-grow-1 container p-4 text-center">
+        <h1 className="display-4 fw-bold text-primary">Welcome to Buddi Chat</h1>
+        <p className="mt-4 fs-5 text-muted">
           Start chatting with your friends in real time!
         </p>
-        <button className="mt-6 bg-orange hover:bg-orange-600 text-white font-bold py-2 px-4 rounded">
+        <button className="mt-4 btn btn-warning">
           Join Chat Room
         </button>
       </main>

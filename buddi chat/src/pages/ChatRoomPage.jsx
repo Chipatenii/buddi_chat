@@ -24,11 +24,11 @@ const ChatRoomPage = () => {
   };
 
   return (
-    <div className="chat-room-page">
+    <div className="d-flex">
       <ChatSidebar chatRooms={chatRooms} onRoomSelect={setCurrentRoom} />
-      <main>
-        <h2>{currentRoom} Room</h2>
-        <div className="messages">
+      <main className="flex-grow-1 p-4">
+        <h2 className="mb-4">{currentRoom} Room</h2>
+        <div className="messages mb-4">
           {messages.map((msg, index) => (
             <ChatMessage key={index} user={msg.user} message={msg.message} timestamp={msg.timestamp} />
           ))}
