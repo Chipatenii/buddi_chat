@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const mongoose = require('mongoose');
+const cors = require('cors'); // Import cors
 const { setupWebSocket } = require('./sockets/socket');
 const protectedRoutes = require('./routes/protectedRoutes');
 const authRoutes = require('./routes/auth'); // Import auth routes
@@ -10,6 +11,9 @@ const app = express();
 
 // Middleware to parse JSON
 app.use(express.json());
+
+// Enable CORS
+app.use(cors());
 
 // Connect to MongoDB
 const mongoURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/buddi_chat';
