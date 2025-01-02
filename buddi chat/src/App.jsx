@@ -1,5 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage'; // Import HomePage
 import ChatRoomPage from './pages/ChatRoomPage';
 import SettingsPage from './pages/SettingsPage';
 import UserProfilePage from './pages/UserProfilePage';
@@ -13,8 +14,8 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        {/* Redirect to Register Page by default */}
-        <Route path="/" element={<Navigate to="/register" />} />
+        {/* Redirect to Home Page by default */}
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
