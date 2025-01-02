@@ -9,6 +9,11 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
 
+    // Basic validation
+    if (!username || !email || !password) {
+        return res.status(400).json({ message: 'All fields are required' });
+    }
+
     try {
         const existingUser = await User.findOne({ username });
         if (existingUser) {
@@ -19,8 +24,17 @@ router.post('/register', async (req, res) => {
         const newUser = new User({ username, email, password: hashedPassword });
 
         await newUser.save();
-        res.status(201).json({ message: 'User registered successfully' });
+
+        // Generate a JWT token
+        const token = jwt.sign(
+            { userId: newUser._id, username: newUser.username },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' } // Token valid for 1 hour
+        );
+
+        res.status(201).json({ message: 'User registered successfully', token });
     } catch (error) {
+        console.error('Error registering user:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -28,6 +42,11 @@ router.post('/register', async (req, res) => {
 // Login endpoint
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
+
+    // Basic validation
+    if (!username || !password) {
+        return res.status(400).json({ message: 'All fields are required' });
+    }
 
     try {
         const user = await User.findOne({ username });
@@ -48,6 +67,7 @@ router.post('/login', async (req, res) => {
 
         res.status(200).json({ token, username: user.username });
     } catch (error) {
+        console.error('Error logging in user:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

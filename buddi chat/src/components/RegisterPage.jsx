@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from '../services/apiService';
+import api from '../services/apiService';
 
 const RegisterPage = () => {
     const [username, setUsername] = useState('');
@@ -11,8 +11,16 @@ const RegisterPage = () => {
 
     const handleRegister = async (e) => {
         e.preventDefault();
+        setError(''); // Clear previous errors
+
+        // Basic form validation
+        if (!username || !email || !password) {
+            setError('All fields are required');
+            return;
+        }
+
         try {
-            const response = await axios.post('/api/register', { username, email, password });
+            const response = await api.post('/auth/register', { username, email, password });
             if (response.status === 201) {
                 alert('Registration successful! You can now log in.');
                 navigate('/login'); // Redirect to login

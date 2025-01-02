@@ -3,6 +3,8 @@ const http = require('http');
 const mongoose = require('mongoose');
 const { setupWebSocket } = require('./sockets/socket');
 const protectedRoutes = require('./routes/protectedRoutes');
+const authRoutes = require('./routes/auth'); // Import auth routes
+require('dotenv').config();
 
 const app = express();
 
@@ -10,10 +12,13 @@ const app = express();
 app.use(express.json());
 
 // Connect to MongoDB
-const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/buddi_chat';
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+const mongoURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/buddi_chat';
+mongoose.connect(mongoURI)
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log(err));
+  .catch(err => console.log('Error connecting to MongoDB:', err));
+
+// Use auth routes
+app.use('/api/auth', authRoutes);
 
 // Use protected routes
 app.use('/api/protected', protectedRoutes);
