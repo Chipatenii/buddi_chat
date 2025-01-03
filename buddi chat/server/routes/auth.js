@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+require('dotenv').config(); // Load environment variables
 
 const router = express.Router();
 
@@ -15,9 +16,16 @@ router.post('/register', async (req, res) => {
     }
 
     try {
-        const existingUser = await User.findOne({ username });
-        if (existingUser) {
+        // Check if a user with the same username already exists
+        const existingUserByUsername = await User.findOne({ username });
+        if (existingUserByUsername) {
             return res.status(400).json({ message: 'Username already exists' });
+        }
+
+        // Check if a user with the same email already exists
+        const existingUserByEmail = await User.findOne({ email });
+        if (existingUserByEmail) {
+            return res.status(400).json({ message: 'Email already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -28,7 +36,7 @@ router.post('/register', async (req, res) => {
         // Generate a JWT token
         const token = jwt.sign(
             { userId: newUser._id, username: newUser.username },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET, // Use the JWT secret key from environment variables
             { expiresIn: '1h' } // Token valid for 1 hour
         );
 
@@ -64,7 +72,7 @@ router.post('/login', async (req, res) => {
 
         const token = jwt.sign(
             { userId: user._id, username: user.username },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET, // Use the JWT secret key from environment variables
             { expiresIn: '1h' } // Token valid for 1 hour
         );
 

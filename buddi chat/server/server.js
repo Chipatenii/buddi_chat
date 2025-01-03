@@ -2,10 +2,10 @@ const express = require('express');
 const http = require('http');
 const mongoose = require('mongoose');
 const cors = require('cors'); // Import cors
+require('dotenv').config(); // Load environment variables
 const { setupWebSocket } = require('./sockets/socket');
 const protectedRoutes = require('./routes/protectedRoutes');
 const authRoutes = require('./routes/auth'); // Import auth routes
-require('dotenv').config();
 
 const app = express();
 
