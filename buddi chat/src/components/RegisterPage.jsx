@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/apiService';
+import axios from '../services/apiService';
 
 const RegisterPage = () => {
     const [username, setUsername] = useState('');
@@ -11,16 +11,12 @@ const RegisterPage = () => {
 
     const handleRegister = async (e) => {
         e.preventDefault();
-        setError(''); // Clear previous errors
-
-        // Basic form validation
-        if (!username || !email || !password) {
-            setError('All fields are required');
-            return;
-        }
+        console.log('Username:', username);
+        console.log('Email:', email);
+        console.log('Password:', password);
 
         try {
-            const response = await api.post('/auth/register', { username, email, password });
+            const response = await axios.post('/api/auth/register', { username, email, password });
             if (response.status === 201) {
                 alert('Registration successful! You can now log in.');
                 navigate('/login'); // Redirect to login
@@ -32,11 +28,16 @@ const RegisterPage = () => {
 
     return (
         <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
-            <form onSubmit={handleRegister} className="bg-white p-4 rounded shadow-sm w-100 max-w-sm">
+            <form
+                onSubmit={handleRegister}
+                className="bg-white p-4 rounded shadow-sm w-100 max-w-sm"
+            >
                 <h1 className="h4 mb-4">Register</h1>
                 {error && <p className="text-danger mb-4">{error}</p>}
                 <div className="mb-3">
-                    <label htmlFor="username" className="form-label">Username</label>
+                    <label htmlFor="username" className="form-label">
+                        Username
+                    </label>
                     <input
                         id="username"
                         type="text"
@@ -46,7 +47,9 @@ const RegisterPage = () => {
                     />
                 </div>
                 <div className="mb-3">
-                    <label htmlFor="email" className="form-label">Email</label>
+                    <label htmlFor="email" className="form-label">
+                        Email
+                    </label>
                     <input
                         id="email"
                         type="email"
@@ -56,7 +59,9 @@ const RegisterPage = () => {
                     />
                 </div>
                 <div className="mb-3">
-                    <label htmlFor="password" className="form-label">Password</label>
+                    <label htmlFor="password" className="form-label">
+                        Password
+                    </label>
                     <input
                         id="password"
                         type="password"
@@ -65,10 +70,18 @@ const RegisterPage = () => {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
-                <button type="submit" className="btn btn-primary w-100">Register</button>
+                <button
+                    type="submit"
+                    className="btn btn-primary w-100"
+                >
+                    Register
+                </button>
                 <p className="mt-4 text-center text-sm">
                     Already have an account?{' '}
-                    <span className="text-primary cursor-pointer" onClick={() => navigate('/login')}>
+                    <span
+                        className="text-primary cursor-pointer"
+                        onClick={() => navigate('/login')}
+                    >
                         Login here
                     </span>
                 </p>

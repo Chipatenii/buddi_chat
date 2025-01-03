@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from '../services/apiService';
+import api from '../services/apiService';
 
 const LoginPage = () => {
     const [username, setUsername] = useState('');
@@ -10,11 +10,14 @@ const LoginPage = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        console.log('Username:', username);
+        console.log('Password:', password);
+
         try {
-            const response = await axios.post('/api/login', { username, password });
+            const response = await api.post('/auth/login', { username, password });
             localStorage.setItem('token', response.data.token);
             alert('Login successful!');
-            navigate('/chat');
+            navigate('/chat-room');
         } catch (err) {
             setError(err.response?.data?.message || 'Something went wrong');
         }

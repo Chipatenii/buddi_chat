@@ -11,8 +11,12 @@ const RegisterPage = () => {
 
     const handleRegister = async (e) => {
         e.preventDefault();
+        console.log('Username:', username);
+        console.log('Email:', email);
+        console.log('Password:', password);
+
         try {
-            const response = await axios.post('/api/register', { username, email, password });
+            const response = await axios.post('/api/auth/register', { username, email, password });
             if (response.status === 201) {
                 alert('Registration successful! You can now log in.');
                 navigate('/login'); // Redirect to login
