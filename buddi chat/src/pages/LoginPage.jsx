@@ -10,15 +10,21 @@ const LoginPage = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        console.log('Username:', username);
-        console.log('Password:', password);
-
+        setError(''); // Clear previous errors
+    
         try {
+            console.log('Sending login request...');
             const response = await api.post('/auth/login', { username, password });
+            
+            console.log('API Response:', response.data);
+            
             localStorage.setItem('token', response.data.token);
             alert('Login successful!');
-            navigate('/chat-room');
+            
+            console.log('Navigating to chat room...');
+            navigate('/chat-room'); // Redirect after success
         } catch (err) {
+            console.error('Login error:', err.response?.data || err);
             setError(err.response?.data?.message || 'Something went wrong');
         }
     };
