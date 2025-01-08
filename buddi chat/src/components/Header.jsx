@@ -1,9 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
 
 const Header = () => {
   const navigate = useNavigate();
-  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
 
   // Handle user logout
   const handleLogout = () => {
@@ -11,57 +9,45 @@ const Header = () => {
     navigate('/login');
   };
 
-  // Toggle the navigation menu on smaller screens
-  const handleNavCollapse = () => setIsNavCollapsed(!isNavCollapsed);
-
   return (
-    <header className="bg-primary text-white py-3 px-4">
+    <header className="bg-primary text-white py-3 px-5">
       <div className="container d-flex justify-content-between align-items-center">
-        {/* Logo or Brand Name */}
-        <h1 className="h4 mb-0">Buddi Chat</h1>
-
-        {/* Navbar Toggler (Visible on small screens) */}
-        <button
-          className="navbar-toggler d-md-none"
-          type="button"
-          onClick={handleNavCollapse}
-          aria-controls="navbarNav"
-          aria-expanded={!isNavCollapsed}
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
+        {/* Logo */}
+        <Link to="/" className="d-flex align-items-center text-white text-decoration-none">
+          <img src="src/logo.svg" alt="Buddi Chat Logo" className="me-2" style={{ height: '40px' }} />
+        </Link>
 
         {/* Navigation Links */}
-        <nav
-          className={`collapse navbar-collapse ${isNavCollapsed ? '' : 'show'}`}
-          id="navbarNav"
-        >
-          <ul className="navbar-nav ms-auto">
+        <nav className="d-flex">
+          <ul className="navbar-nav ms-auto d-flex flex-row align-items-center">
             <li className="nav-item">
-              <Link to="/" className="nav-link text-white">
+              <Link to="/" className="nav-link text-white mx-2">
                 Home
               </Link>
             </li>
+            <span className="text-white">|</span>
             <li className="nav-item">
-              <Link to="/chat-room" className="nav-link text-white">
+              <Link to="/chat-room" className="nav-link text-white mx-2">
                 Chat Room
               </Link>
             </li>
+            <span className="text-white">|</span>
             <li className="nav-item">
-              <Link to="/profile" className="nav-link text-white">
+              <Link to="/profile" className="nav-link text-white mx-2">
                 Profile
               </Link>
             </li>
+            <span className="text-white">|</span>
             <li className="nav-item">
-              <Link to="/settings" className="nav-link text-white">
+              <Link to="/settings" className="nav-link text-white mx-2">
                 Settings
               </Link>
             </li>
+            <span className="text-white">|</span>
             <li className="nav-item">
               <button
                 onClick={handleLogout}
-                className="btn btn-link nav-link text-white"
+                className="btn btn-link nav-link text-white mx-2"
               >
                 Logout
               </button>
