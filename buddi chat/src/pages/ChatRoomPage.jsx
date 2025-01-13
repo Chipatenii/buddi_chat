@@ -35,13 +35,13 @@ const ChatRoomPage = () => {
     <div className="d-flex flex-column min-vh-100">
       {/* Page Header */}
       <header className="bg-primary text-white py-4 w-100">
-        <h1 className="text-center m-0">Chat Room</h1>
+        <h1 className="text-center m-2">Chat Room</h1>
       </header>
 
       {/* Navigation Bar */}
       <nav className="navbar navbar-expand-lg navbar-light bg-light w-100">
         <div className="container-fluid">
-          <Link className="navbar-brand" to="/">Buddi Chat</Link>
+          <Link className="navbar-brand" to="/">Home</Link>
           <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span className="navbar-toggler-icon"></span>
           </button>
@@ -79,11 +79,11 @@ const ChatRoomPage = () => {
         <ChatSidebar users={users} />
 
         {/* Chat Room Area */}
-        <main className="flex-grow-1 p-4 d-flex flex-column w-100">
+        <main className="flex-grow-1 p-5 d-flex flex-column w-10">
           <h2 className="mb-4 text-primary">{currentRoom} Room</h2>
 
           {/* Message List */}
-          <div className="messages mb-4 flex-grow-1 overflow-auto">
+          <div className="messages mb-5 flex-grow-1 overflow-auto">
             {messages.map((msg, index) => (
               <ChatMessage
                 key={index}

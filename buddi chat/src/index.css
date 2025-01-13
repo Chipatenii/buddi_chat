@@ -1,17 +1,28 @@
-/* General styles */
+/* Import Roboto font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+/* General styles using Bootstrap classes and custom overrides */
 :root {
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
   color: #1c1e21; /* Facebook text color */
   background-color: #e9ebee; /* Facebook background color */
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.app.light {
+  background-color: white !important;
+  color: black !important;
+}
+
+.app.dark {
+  background-color: black !important;
+  color: white !important;
 }
 
 a {
@@ -19,6 +30,7 @@ a {
   color: #1877f2; /* Facebook primary color */
   text-decoration: none;
 }
+
 a:hover {
   color: #145dbf; /* Facebook primary color darkened */
 }
@@ -32,7 +44,7 @@ body {
   min-height: 100vh;
   background-color: #e9ebee; /* Facebook background color */
   color: #1c1e21; /* Facebook text color */
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 h1 {
@@ -44,7 +56,7 @@ h1 {
 button {
   border-radius: 0.25rem; /* Facebook border-radius */
   border: 1px solid transparent;
-  padding: 0.5rem 1rem; /* Facebook spacing scale */
+  padding: 0.5rem 1rem; /* Bootstrap padding scale */
   font-size: 1rem;
   font-weight: 500;
   font-family: inherit;
@@ -53,10 +65,12 @@ button {
   cursor: pointer;
   transition: background-color 0.25s, color 0.25s;
 }
+
 button:hover {
   background-color: #145dbf; /* Facebook primary color darkened */
   color: #fff;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -67,9 +81,11 @@ button:focus-visible {
     color: #1c1e21;
     background-color: #e9ebee;
   }
+
   a:hover {
     color: #145dbf;
   }
+
   button {
     background-color: #1877f2;
     color: #fff;
