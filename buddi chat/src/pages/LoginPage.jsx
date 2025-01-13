@@ -29,6 +29,10 @@ const LoginPage = () => {
         }
     };
 
+    const handleSignUp = () => {
+        navigate('/register'); // Redirect to register page
+    };
+
     return (
         <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
             <form
@@ -63,9 +67,16 @@ const LoginPage = () => {
                 </div>
                 <button
                     type="submit"
-                    className="btn btn-primary w-100"
+                    className="btn btn-primary w-100 mb-2"
                 >
                     Login
+                </button>
+                <button
+                    type="button"
+                    className="btn btn-secondary w-100"
+                    onClick={handleSignUp}
+                >
+                    Sign Up
                 </button>
             </form>
         </div>
