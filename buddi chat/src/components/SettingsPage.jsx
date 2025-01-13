@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 const SettingsPage = () => {
+  const { theme, setTheme } = useTheme();
   const [notifications, setNotifications] = useState(true);
-  const [theme, setTheme] = useState('light');
 
   const handleSaveSettings = () => {
     alert('Settings saved!');
