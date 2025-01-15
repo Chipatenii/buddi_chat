@@ -7,8 +7,8 @@
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light dark;
-  color: #1c1e21; /* Facebook text color */
-  background-color: #e9ebee; /* Facebook background color */
+  color: #1c1e21;
+  background-color: #e9ebee; 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -27,12 +27,12 @@
 
 a {
   font-weight: 500;
-  color: #1877f2; /* Facebook primary color */
+  color: #f8fbff; 
   text-decoration: none;
 }
 
 a:hover {
-  color: #145dbf; /* Facebook primary color darkened */
+  color: #145dbf;
 }
 
 body {
@@ -42,32 +42,32 @@ body {
   align-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #e9ebee; /* Facebook background color */
-  color: #1c1e21; /* Facebook text color */
+  background-color: #e9ebee;
+  color: #1c1e21; 
   font-family: 'Roboto', sans-serif;
 }
 
 h1 {
-  font-size: 2rem; /* Responsive size */
+  font-size: 2rem; 
   line-height: 1.1;
-  color: #1877f2; /* Facebook primary color */
+  color: #1877f2;
 }
 
 button {
-  border-radius: 0.25rem; /* Facebook border-radius */
+  border-radius: 0.25rem; 
   border: 1px solid transparent;
-  padding: 0.5rem 1rem; /* Bootstrap padding scale */
+  padding: 0.5rem 1rem; 
   font-size: 1rem;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1877f2; /* Facebook primary color */
-  color: #fff; /* White text color */
+  background-color: #1877f2; 
+  color: #fff; 
   cursor: pointer;
   transition: background-color 0.25s, color 0.25s;
 }
 
 button:hover {
-  background-color: #145dbf; /* Facebook primary color darkened */
+  background-color: #145dbf;
   color: #fff;
 }
 

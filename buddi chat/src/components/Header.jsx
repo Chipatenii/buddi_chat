@@ -11,7 +11,7 @@ const Header = () => {
 
   return (
     <header className="bg-primary text-white py-3 px-5">
-      <div className="container d-flex justify-content-between align-items-center">
+      <div className="container-fluid d-flex justify-content-between align-items-center">
         {/* Logo */}
         <Link to="/" className="d-flex align-items-center text-white text-decoration-none">
           <img src="src/logo.svg" alt="Buddi Chat Logo" className="me-2" style={{ height: '40px' }} />

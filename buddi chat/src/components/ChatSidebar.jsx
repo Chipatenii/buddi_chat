@@ -10,12 +10,16 @@ const ChatSidebar = ({ users = [] }) => {
           {users.map((user) => (
             <li key={user.id} className="p-2 bg-white rounded shadow-sm mb-2 d-flex align-items-center">
               <div className="d-flex align-items-center">
-                <div className="avatar bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3" style={{ width: '40px', height: '40px' }}>
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
+                <img 
+                  src={user.profilePicture || 'https://via.placeholder.com/40'} 
+                  alt={user.name}
+                  className="rounded-circle me-3"
+                  style={{ width: '40px', height: '40px' }}
+                />
                 <Link to={`/profile/${user.id}`} className="text-decoration-none text-dark fw-bold">
                   {user.name}
                 </Link>
+                <p className="ms-2 text-muted">{user.bio || 'No bio available'}</p>
               </div>
             </li>
           ))}
@@ -32,6 +36,8 @@ ChatSidebar.propTypes = {
     PropTypes.shape({
       id: PropTypes.string.isRequired,
       name: PropTypes.string.isRequired,
+      profilePicture: PropTypes.string,
+      bio: PropTypes.string,
     })
   ).isRequired,
 };

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 
 const SettingsPage = () => {
   const [notifications, setNotifications] = useState(true);
@@ -11,41 +10,6 @@ const SettingsPage = () => {
 
   return (
     <div className="d-flex flex-column min-vh-100">
-      {/* Navigation Bar */}
-      <nav className="navbar navbar-expand-lg navbar-light bg-light">
-        <div className="container-fluid">
-          <Link className="navbar-brand" to="/">Home</Link>
-          <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          <div className="collapse navbar-collapse justify-content-end" id="navbarNav">
-            <ul className="navbar-nav">
-              <li className="nav-item">
-                <Link className="nav-link" to="/">Home</Link>
-              </li>
-              <li className="nav-item">
-                <span className="nav-link">|</span>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/profile">Profile</Link>
-              </li>
-              <li className="nav-item">
-                <span className="nav-link">|</span>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/settings">Settings</Link>
-              </li>
-              <li className="nav-item">
-                <span className="nav-link">|</span>
-              </li>
-              <li className="nav-item">
-                <button className="nav-link btn btn-link" onClick={() => alert('Logged out!')}>Logout</button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-
       {/* Settings Content */}
       <div className="container my-4">
         <h2 className="mb-4">Settings</h2>

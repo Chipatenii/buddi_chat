@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
 // Page Components
 import HomePage from './pages/HomePage';
@@ -16,48 +16,73 @@ import './index.css';
 import PrivateRoute from './components/PrivateRoute';
 import Logout from './components/Logout';
 
+// Layout Components
+import Header from './components/Header';
+import Footer from './components/Footer';
+
 const App = () => {
   return (
     <Router>
-      <ErrorBoundary>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-
-          {/* Protected Routes */}
-          <Route
-            path="/chat-room"
-            element={
-              <PrivateRoute>
-                <ChatRoomPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <PrivateRoute>
-                <SettingsPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <PrivateRoute>
-                <UserProfilePage />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/logout" element={<Logout />} />
-
-          {/* Fallback Route for Unmatched Paths */}
-          <Route path="*" element={<ErrorPage />} />
-        </Routes>
-      </ErrorBoundary>
+      <AppContent />
     </Router>
+  );
+};
+
+const AppContent = () => {
+  const location = useLocation();  // Now inside the Router context
+
+  const isAuthPage = location.pathname === '/register' || location.pathname === '/login';  // Check if it's the Register or Login page
+
+  return (
+    <ErrorBoundary>
+      <div className="d-flex flex-column min-vh-100">
+        {/* Conditionally render the Header and Footer */}
+        {!isAuthPage && <Header />}
+        
+        {/* Main Content (Inside a fixed-width container) */}
+        <div className="container flex-grow-1">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+
+            {/* Protected Routes */}
+            <Route
+              path="/chat-room"
+              element={
+                <PrivateRoute>
+                  <ChatRoomPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <PrivateRoute>
+                  <SettingsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <UserProfilePage />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/logout" element={<Logout />} />
+
+            {/* Fallback Route for Unmatched Paths */}
+            <Route path="*" element={<ErrorPage />} />
+          </Routes>
+        </div>
+
+        {/* Conditionally render the Footer */}
+        {!isAuthPage && <Footer />}
+      </div>
+    </ErrorBoundary>
   );
 };
 
