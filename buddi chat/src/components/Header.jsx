@@ -1,4 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
+// Import Font Awesome icons
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHome, faComments, faUser, faCog, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -22,34 +25,30 @@ const Header = () => {
           <ul className="navbar-nav ms-auto d-flex flex-row align-items-center">
             <li className="nav-item">
               <Link to="/" className="nav-link text-white mx-2">
-                Home
+                <FontAwesomeIcon icon={faHome} title="Home" />
               </Link>
             </li>
-            <span className="text-white">|</span>
             <li className="nav-item">
               <Link to="/chat-room" className="nav-link text-white mx-2">
-                Chat Room
+                <FontAwesomeIcon icon={faComments} title="Chat Room" />
               </Link>
             </li>
-            <span className="text-white">|</span>
             <li className="nav-item">
               <Link to="/profile" className="nav-link text-white mx-2">
-                Profile
+                <FontAwesomeIcon icon={faUser} title="Profile" />
               </Link>
             </li>
-            <span className="text-white">|</span>
             <li className="nav-item">
               <Link to="/settings" className="nav-link text-white mx-2">
-                Settings
+                <FontAwesomeIcon icon={faCog} title="Settings" />
               </Link>
             </li>
-            <span className="text-white">|</span>
             <li className="nav-item">
               <button
                 onClick={handleLogout}
                 className="btn btn-link nav-link text-white mx-2"
               >
-                Logout
+                <FontAwesomeIcon icon={faSignOutAlt} title="Logout" />
               </button>
             </li>
           </ul>
