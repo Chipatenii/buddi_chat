@@ -25,7 +25,8 @@ const authenticateToken = (req, res, next) => {
 router.post('/', async (req, res) => {
     try {
         const { username, email, password } = req.body;
-        const user = new User({ username, email, password });
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({ username, email, password: hashedPassword });
         await user.save();
         res.status(201).json(user);
     } catch (err) {
@@ -46,7 +47,7 @@ router.get('/', async (req, res) => {
 // Get logged-in user's details
 router.get('/user', authenticateToken, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id); // Use ID from token
+        const user = await User.findById(req.user.userId); // Corrected to use userId from token
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }

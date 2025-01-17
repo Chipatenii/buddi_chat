@@ -1,4 +1,3 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
 // Page Components
@@ -35,12 +34,12 @@ const AppContent = () => {
 
   return (
     <ErrorBoundary>
-      <div className="d-flex flex-column min-vh-100">
+      <div className="app">
         {/* Conditionally render the Header and Footer */}
         {!isAuthPage && <Header />}
         
-        {/* Main Content (Inside a fixed-width container) */}
-        <div className="container flex-grow-1">
+        {/* Main Content */}
+        <div className="main-content">
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />

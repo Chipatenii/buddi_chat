@@ -8,7 +8,12 @@ export const connectWebSocket = () => {
     };
 
     socket.onmessage = (event) => {
-        console.log('Received:', event.data);
+        try {
+            const message = JSON.parse(event.data);
+            console.log('Received:', message);
+        } catch (error) {
+            console.error('Failed to parse WebSocket message:', error);
+        }
     };
 
     socket.onclose = () => {
@@ -23,6 +28,8 @@ export const connectWebSocket = () => {
 export const sendMessage = (message) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(message));
+    } else {
+        console.warn('WebSocket is not open. Message not sent:', message);
     }
 };
 
