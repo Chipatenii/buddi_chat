@@ -6,7 +6,7 @@ const multer = require('multer');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
-const authRoutes = require('./routes/authRoutes');
+const authRoutes = require('./routes/auth');
 const protectedRoutes = require('./routes/protectedRoutes');
 const userRoutes = require('./routes/userRoutes');
 
