@@ -1,4 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useContext, useEffect, useState } from 'react';
+import { ThemeContext } from './context/ThemeContext';
+import api from './services/apiService';
 
 // Page Components
 import HomePage from './pages/HomePage';
@@ -8,38 +11,53 @@ import UserProfilePage from './pages/UserProfilePage';
 import ErrorPage from './pages/ErrorPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import ErrorBoundary from './components/ErrorBoundary';
-import './index.css';
 
 // Utility Components
 import PrivateRoute from './components/PrivateRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import Logout from './components/Logout';
 
 // Layout Components
 import Header from './components/Header';
 import Footer from './components/Footer';
 
-const App = () => {
-  return (
-    <Router>
-      <AppContent />
-    </Router>
-  );
-};
+import './index.css';
+
+const App = () => (
+  <Router>
+    <AppContent />
+  </Router>
+);
 
 const AppContent = () => {
-  const location = useLocation();  // Now inside the Router context
+  const location = useLocation();
+  const { theme } = useContext(ThemeContext);
 
-  const isAuthPage = location.pathname === '/register' || location.pathname === '/login';  // Check if it's the Register or Login page
+  const [userId, setUserId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const isAuthPage = ['/login', '/register'].includes(location.pathname);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const { data } = await api.get('/user');
+        setUserId(data?.userId);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <ErrorBoundary>
-      <div className="app">
-        {/* Conditionally render the Header and Footer */}
+      <div className={`app ${theme}`}>
         {!isAuthPage && <Header />}
-        
-        {/* Main Content */}
-        <div className="main-content">
+        <main className="main-content">
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
@@ -64,21 +82,23 @@ const AppContent = () => {
               }
             />
             <Route
-              path="/profile"
+              path="/profile/:userId"
               element={
                 <PrivateRoute>
-                  <UserProfilePage />
+                  {isLoading ? (
+                    <div>Loading...</div>
+                  ) : (
+                    <UserProfilePage userId={userId} />
+                  )}
                 </PrivateRoute>
               }
             />
             <Route path="/logout" element={<Logout />} />
 
-            {/* Fallback Route for Unmatched Paths */}
+            {/* Fallback Route */}
             <Route path="*" element={<ErrorPage />} />
           </Routes>
-        </div>
-
-        {/* Conditionally render the Footer */}
+        </main>
         {!isAuthPage && <Footer />}
       </div>
     </ErrorBoundary>

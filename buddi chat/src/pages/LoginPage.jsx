@@ -18,11 +18,11 @@ const LoginPage = () => {
             
             console.log('API Response:', response.data);
             
-            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('authToken', response.data.token);
             alert('Login successful!');
             
-            console.log('Navigating to chat room...');
-            navigate('/chat-room'); // Redirect after success
+            console.log('Navigating to homepage...');
+            navigate('/'); // Redirect to homepage after success
         } catch (err) {
             console.error('Login error:', err.response?.data || err);
             setError(err.response?.data?.message || 'Something went wrong');

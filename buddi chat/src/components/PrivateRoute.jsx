@@ -3,11 +3,9 @@ import PropTypes from 'prop-types';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
-  const isAuthenticated = !!token; // Check if token exists
+  const isAuthenticated = Boolean(token); // Ensure it evaluates properly
 
-  console.log('PrivateRoute: isAuthenticated =', isAuthenticated);
-
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
 PrivateRoute.propTypes = {

@@ -6,7 +6,10 @@ const authenticateToken = (req, res, next) => {
 
         // Check if the Authorization header is present and properly formatted
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ message: 'Access denied. Token missing or invalid.' });
+            return res.status(401).json({
+                success: false,
+                message: 'Access denied. Token missing or invalid.',
+            });
         }
 
         // Extract the token from the Authorization header
@@ -23,15 +26,24 @@ const authenticateToken = (req, res, next) => {
     } catch (err) {
         // Differentiate between expired and invalid tokens
         if (err.name === 'TokenExpiredError') {
-            return res.status(401).json({ message: 'Token expired. Please log in again.' });
+            return res.status(401).json({
+                success: false,
+                message: 'Token expired. Please log in again.',
+            });
         }
         if (err.name === 'JsonWebTokenError') {
-            return res.status(403).json({ message: 'Invalid token. Access denied.' });
+            return res.status(403).json({
+                success: false,
+                message: 'Invalid token. Access denied.',
+            });
         }
 
         // Handle other unexpected errors
         console.error('Token verification error:', err.message);
-        res.status(500).json({ message: 'An error occurred while verifying the token.' });
+        res.status(500).json({
+            success: false,
+            message: 'An error occurred while verifying the token.',
+        });
     }
 };
 

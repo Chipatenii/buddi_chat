@@ -39,4 +39,20 @@ router.get('/admin', authenticateToken, checkRole('admin'), (req, res) => {
     res.status(200).json({ message: 'Welcome to the admin panel!' });
 });
 
+// New protected route to fetch logged-in user information
+router.get('/loggedInUser', authenticateToken, (req, res) => {
+    try {
+        // You can modify the response according to your user model and available fields
+        res.status(200).json({
+            id: req.user.id,
+            username: req.user.username,
+            email: req.user.email, // Assuming the token has email info
+            role: req.user.role    // Assuming the token has a role field
+        });
+    } catch (err) {
+        console.error('Error in /loggedInUser route:', err.message);
+        res.status(500).json({ message: 'An error occurred while fetching logged-in user information.' });
+    }
+});
+
 module.exports = router;

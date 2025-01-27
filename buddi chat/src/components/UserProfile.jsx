@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 
 const UserProfile = ({ userId }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // Explicit loading state
+  const [error, setError] = useState(null);    // Error handling state
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -13,22 +15,38 @@ const UserProfile = ({ userId }) => {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
+
         if (!response.ok) {
           throw new Error(`HTTP error: ${response.status}`);
         }
+
         const data = await response.json();
         console.log('User data fetched:', data);
         setUser(data);
+        setError(null); // Clear any previous errors
       } catch (error) {
         console.error('Error fetching user data:', error);
+        setError('Failed to load user data.'); // Set error state
+      } finally {
+        setLoading(false); // Loading is done
       }
     };
 
-    if (userId) fetchUserData();
+    if (userId) {
+      fetchUserData();
+    }
   }, [userId]);
 
+  if (loading) {
+    return <div>Loading...</div>; // Show explicit loading state
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>; // Display error message
+  }
+
   if (!user) {
-    return <div>Loading...</div>;
+    return <div>No user data found.</div>; // Handle unexpected empty user state
   }
 
   return (
