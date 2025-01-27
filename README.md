@@ -126,13 +126,13 @@ To deploy the application:
 
 ```
 buddi_chat
-├── public                 # Static files
+├                
 ├── src
 │   ├── components         # React components
 │   ├── pages              # React pages
 │   ├── services           # API services
-│   ├── App.js             # Main React app file
-│   └── index.js           # Entry point for React
+│   ├── App.jsx             # Main React app file
+│   └── main.jsx           # Entry point for React
 ├── server
 │   ├── models             # Mongoose schemas
 │   ├── routes             # API routes
