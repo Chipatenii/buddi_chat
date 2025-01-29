@@ -50,8 +50,8 @@ const AppContent = () => {
       }
     };
 
-    fetchUserData();
-  }, []);
+    fetchUserData(localStorage.getItem('authtoken'));
+  }, []); // Empty dependency array ensures this runs only once
 
   return (
     <ErrorBoundary>
@@ -87,8 +87,10 @@ const AppContent = () => {
                 <PrivateRoute>
                   {isLoading ? (
                     <div>Loading...</div>
-                  ) : (
+                  ) : userId ? (
                     <UserProfilePage userId={userId} />
+                  ) : (
+                    <div>Error: User ID not found</div>
                   )}
                 </PrivateRoute>
               }
