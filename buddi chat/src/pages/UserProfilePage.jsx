@@ -10,9 +10,9 @@ const UserProfile = ({ userId }) => {
     const fetchUserData = async () => {
       try {
         console.log(`Fetching data for userId: ${userId}`);
-        const response = await fetch(`/api/user/${userId}`, {
+        const response = await fetch(`/api/loggedInUser/${userId}`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${localStorage.getItem('authtoken')}`,
           },
         });
 

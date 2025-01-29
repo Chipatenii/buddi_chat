@@ -80,7 +80,7 @@ router.post('/register', upload.single('profilePicture'), async (req, res) => {
             { expiresIn: '1h' }
         );
 
-        res.status(201).json({ message: 'User registered successfully', token });
+        res.status(201).json({ message: 'User registered successfully', authtoken });
     } catch (error) {
         console.error('Registration Error:', error.message);
         res.status(500).json({ message: 'Server error' });

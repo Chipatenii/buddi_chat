@@ -14,7 +14,7 @@ export const connectWebSocket = () => {
   const token = localStorage.getItem('token');
 
   // Include the token in the WebSocket connection if available
-  const wsURL = `ws://localhost:5000?token=${token || ''}`;
+  const wsURL = `ws://localhost:5001?token=${token || ''}`;
   socket = new WebSocket(wsURL);
 
   socket.onopen = () => {

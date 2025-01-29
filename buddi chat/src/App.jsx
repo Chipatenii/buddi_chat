@@ -41,7 +41,7 @@ const AppContent = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const { data } = await api.get('/user');
+        const { data } = await api.get('/loggedInUser');
         setUserId(data?.userId);
       } catch (error) {
         console.error('Error fetching user data:', error);

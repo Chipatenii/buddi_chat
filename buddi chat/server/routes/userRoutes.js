@@ -45,7 +45,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get logged-in user's details
-router.get('/user', authenticateToken, async (req, res) => {
+router.get('/loggedInUser', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.userId); // Corrected to use userId from token
         if (!user) {
