@@ -1,126 +1,199 @@
-let socket; // WebSocket instance
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5; // Maximum number of reconnection attempts
-const RECONNECT_DELAY = 3000; // Delay (in ms) between reconnection attempts
+import { logger } from './logger';
+import { fetchLoggedInUser } from './apiService';
 
-let heartbeatInterval; // Heartbeat interval ID
-const HEARTBEAT_INTERVAL = 10000; // Interval (in ms) for sending pings
+const WS_CONFIG = {
+  RECONNECT_BASE_DELAY: 1000,
+  MAX_RECONNECT_ATTEMPTS: 5,
+  HEARTBEAT_INTERVAL: 15000,
+  PONG_TIMEOUT: 5000,
+};
 
-/**
- * Connect to the WebSocket server.
- */
-export const connectWebSocket = () => {
-  console.log('Attempting to connect to WebSocket server...');
-  const token = localStorage.getItem('token');
+class WebSocketService {
+  constructor() {
+    this.socket = null;
+    this.reconnectAttempts = 0;
+    this.heartbeatTimer = null;
+    this.pongTimeout = null;
+    this.eventListeners = new Map();
+    this.connectionId = null;
+  }
 
-  // Include the token in the WebSocket connection if available
-  const wsURL = `ws://localhost:5001?token=${token || ''}`;
-  socket = new WebSocket(wsURL);
+  connect = async () => {
+    if (this.socket) this.disconnect();
 
-  socket.onopen = () => {
-    console.log('Connected to WebSocket server.');
-    reconnectAttempts = 0; // Reset reconnect attempts
-    startHeartbeat(); // Start heartbeat mechanism
-  };
-
-  socket.onmessage = (event) => {
     try {
-      const message = JSON.parse(event.data);
-      console.log('Received:', message);
-      handleWebSocketMessage(message);
+      const token = localStorage.getItem('authToken');
+      const user = await fetchLoggedInUser();
+      this.connectionId = crypto.randomUUID();
+      
+      const wsURL = new URL(import.meta.env.VITE_WS_URL || 'ws://localhost:5001');
+      wsURL.searchParams.set('userId', user.id);
+      wsURL.searchParams.set('connectionId', this.connectionId);
+      
+      this.socket = new WebSocket(wsURL.toString());
+      this.setupEventHandlers();
     } catch (error) {
-      console.error('Failed to parse WebSocket message:', error);
+      logger.error('WebSocket connection failed:', error);
+      this.scheduleReconnect();
     }
   };
 
-  socket.onclose = (event) => {
-    console.warn(`WebSocket closed: ${event.reason || 'Unknown reason'}`);
-    stopHeartbeat(); // Stop heartbeat mechanism
-    attemptReconnect();
+  setupEventHandlers = () => {
+    this.socket.onopen = () => {
+      logger.info('WebSocket connected');
+      this.reconnectAttempts = 0;
+      this.startHeartbeat();
+      this.emit('connected');
+    };
+
+    this.socket.onmessage = (event) => {
+      try {
+        const message = this.validateMessage(event.data);
+        this.handleProtocolMessage(message);
+        this.emit(message.type, message.payload);
+      } catch (error) {
+        logger.error('Message handling failed:', error);
+      }
+    };
+
+    this.socket.onclose = (event) => {
+      logger.warn(`WebSocket closed: ${event.code} - ${event.reason}`);
+      this.cleanup();
+      this.handleCloseEvent(event);
+    };
+
+    this.socket.onerror = (error) => {
+      logger.error('WebSocket error:', error);
+    };
   };
 
-  socket.onerror = (error) => {
-    console.error('WebSocket error:', error);
-    socket.close(); // Close the socket to trigger reconnection
-  };
-};
-
-/**
- * Handle incoming WebSocket messages.
- * @param {Object} message - The parsed WebSocket message.
- */
-const handleWebSocketMessage = (message) => {
-  switch (message.type) {
-    case 'ping': // Example: Server ping acknowledgment
-      console.log('Ping acknowledged by server.');
-      break;
-    case 'notification': // Handle notification messages
-      console.log('Notification:', message.data);
-      break;
-    default:
-      console.warn('Unhandled WebSocket message type:', message.type);
-  }
-};
-
-/**
- * Send a message through the WebSocket connection.
- * @param {Object} message - The message to send.
- */
-export const sendMessage = (message) => {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(message));
-  } else {
-    console.warn('WebSocket is not open. Message not sent:', message);
-  }
-};
-
-/**
- * Close the WebSocket connection.
- */
-export const closeWebSocket = () => {
-  if (socket) {
-    console.log('Closing WebSocket connection...');
-    socket.close();
-    stopHeartbeat(); // Stop heartbeat mechanism
-  }
-};
-
-/**
- * Attempt to reconnect the WebSocket after a delay.
- */
-const attemptReconnect = () => {
-  if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-    reconnectAttempts++;
-    console.log(`Reconnecting... (attempt ${reconnectAttempts})`);
-    setTimeout(connectWebSocket, RECONNECT_DELAY);
-  } else {
-    console.error('Max reconnect attempts reached. Unable to reconnect.');
-  }
-};
-
-/**
- * Start the heartbeat mechanism to keep the WebSocket connection alive.
- */
-const startHeartbeat = () => {
-  stopHeartbeat(); // Clear any existing interval
-  heartbeatInterval = setInterval(() => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'ping' })); // Send a ping message
+  validateMessage = (rawData) => {
+    const message = JSON.parse(rawData);
+    
+    // Basic message validation schema
+    if (!message.type || !message.payload) {
+      throw new Error('Invalid message format');
     }
-  }, HEARTBEAT_INTERVAL);
-};
+    
+    return message;
+  };
 
-/**
- * Stop the heartbeat mechanism.
- */
-const stopHeartbeat = () => {
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-    heartbeatInterval = null;
+  handleProtocolMessage = (message) => {
+    switch (message.type) {
+      case 'pong':
+        this.clearPongTimeout();
+        break;
+      case 'auth_challenge':
+        this.handleAuthChallenge(message.payload);
+        break;
+      case 'session_expired':
+        this.handleSessionExpired();
+        break;
+    }
+  };
+
+  handleAuthChallenge = async (challenge) => {
+    try {
+      const signature = await this.signChallenge(challenge);
+      this.send('auth_response', { signature });
+    } catch (error) {
+      logger.error('Auth challenge failed:', error);
+      this.disconnect();
+    }
+  };
+
+  handleSessionExpired = () => {
+    localStorage.removeItem('authToken');
+    window.location.href = '/login?session_expired=true';
+  };
+
+  startHeartbeat = () => {
+    this.heartbeatTimer = setInterval(() => {
+      this.send('ping');
+      this.pongTimeout = setTimeout(() => {
+        logger.warn('Pong timeout - reconnecting...');
+        this.disconnect();
+      }, WS_CONFIG.PONG_TIMEOUT);
+    }, WS_CONFIG.HEARTBEAT_INTERVAL);
+  };
+
+  clearPongTimeout = () => {
+    if (this.pongTimeout) {
+      clearTimeout(this.pongTimeout);
+      this.pongTimeout = null;
+    }
+  };
+
+  send = (type, payload = {}) => {
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      const message = JSON.stringify({
+        type,
+        payload: {
+          ...payload,
+          connectionId: this.connectionId,
+          timestamp: Date.now()
+        }
+      });
+      this.socket.send(message);
+    }
+  };
+
+  on = (eventType, callback) => {
+    if (!this.eventListeners.has(eventType)) {
+      this.eventListeners.set(eventType, new Set());
+    }
+    this.eventListeners.get(eventType).add(callback);
+  };
+
+  off = (eventType, callback) => {
+    if (this.eventListeners.has(eventType)) {
+      this.eventListeners.get(eventType).delete(callback);
+    }
+  };
+
+  emit = (eventType, data) => {
+    if (this.eventListeners.has(eventType)) {
+      this.eventListeners.get(eventType).forEach(callback => callback(data));
+    }
+  };
+
+  cleanup = () => {
+    this.clearPongTimeout();
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  };
+
+  disconnect = () => {
+    if (this.socket) {
+      this.socket.close(1000, 'Client initiated disconnect');
+      this.socket = null;
+    }
+    this.cleanup();
+  };
+
+  handleCloseEvent = (event) => {
+    if (![1000, 1001].includes(event.code)) {
+      this.scheduleReconnect();
+    }
+  };
+
+  scheduleReconnect = () => {
+    if (this.reconnectAttempts < WS_CONFIG.MAX_RECONNECT_ATTEMPTS) {
+      const delay = WS_CONFIG.RECONNECT_BASE_DELAY * Math.pow(2, this.reconnectAttempts);
+      this.reconnectAttempts++;
+      setTimeout(() => this.connect(), delay + Math.random() * 500);
+    }
+  };
+}
+
+// Singleton instance
+export const webSocketService = new WebSocketService();
+
+// Auto-reconnect when visibility changes
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !webSocketService.socket) {
+    webSocketService.connect();
   }
-};
-
-// Cleanup on window unload
-window.addEventListener('beforeunload', () => {
-  closeWebSocket();
 });

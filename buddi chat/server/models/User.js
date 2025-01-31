@@ -93,11 +93,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ username: 1 }, { unique: true });
-userSchema.index({ createdBy: 1 });
-
 // Virtuals
 userSchema.virtual("avatarURL").get(function() {
   return this.profilePicture 
