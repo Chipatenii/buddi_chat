@@ -2,143 +2,234 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const Joi = require('joi'); // For input validation
+const Joi = require('joi');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
 const router = express.Router();
-const jwtSecret = process.env.JWT_SECRET || 'default-secret';
 
-// Configure multer for file uploads
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+// Security configuration
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET environment variable not configured');
 
-// Middleware to authenticate JWT token
-const authenticateJWT = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1]; // Extract token from headers
+const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY || '1h';
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-    if (!token) {
-        return res.status(401).json({ message: 'Access denied. Token missing or invalid.' });
-    }
-
-    jwt.verify(token, jwtSecret, (err, user) => {
-        if (err) {
-            return res.status(403).json({ message: 'Invalid token.' });
-        }
-        req.user = user; // Attach user data to request object
-        next();
-    });
-};
-
-// Input validation schemas
-const userSchema = Joi.object({
-    realName: Joi.string().required(),
-    username: Joi.string().alphanum().min(3).max(30).required(),
-    email: Joi.string().email().required(),
-    password: Joi.string().min(6).required(),
+// Rate limiting configuration
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// Register endpoint
-router.post('/register', upload.single('profilePicture'), async (req, res) => {
-    const { realName, username, email, password } = req.body;
-    const profilePicture = req.file;
+// File upload configuration
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  },
+});
 
+// Validation schemas
+const userSchema = Joi.object({
+  realName: Joi.string().trim().min(2).max(50).required(),
+  username: Joi.string().trim().alphanum().min(3).max(30).required(),
+  email: Joi.string().trim().lowercase().email().required(),
+  password: Joi.string()
+    .min(8)
+    .pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$'))
+    .message('Password must contain at least one uppercase letter, one lowercase letter, and one number')
+    .required(),
+});
+
+const loginSchema = Joi.object({
+  username: Joi.string().trim().required(),
+  password: Joi.string().required(),
+});
+
+// Utility functions
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      userId: user._id,
+      sessionId: uuidv4(), // Unique session identifier
+      role: user.role || 'user',
+    },
+    JWT_SECRET,
+    { expiresIn: TOKEN_EXPIRY, algorithm: 'HS256' }
+  );
+};
+
+const sanitizeUser = (user) => ({
+  id: user._id,
+  realName: user.realName,
+  username: user.username,
+  email: user.email,
+  role: user.role,
+  profilePicture: user.profilePicture?.toString('base64'),
+  createdAt: user.createdAt,
+});
+
+// Registration endpoint
+router.post('/register', authLimiter, upload.single('profilePicture'), async (req, res) => {
+  try {
     // Validate input
-    const { error } = userSchema.validate({ realName, username, email, password });
-    if (error) {
-        return res.status(400).json({ message: error.details[0].message });
+    const { error } = userSchema.validate(req.body);
+    if (error) return res.status(422).json({ 
+      code: 'VALIDATION_ERROR', 
+      message: error.details[0].message 
+    });
+
+    if (!req.file) return res.status(422).json({
+      code: 'FILE_REQUIRED',
+      message: 'Profile picture is required'
+    });
+
+    // Check existing users
+    const existingUser = await User.findOne({
+      $or: [{ username: req.body.username }, { email: req.body.email }]
+    });
+
+    if (existingUser) {
+      const field = existingUser.username === req.body.username ? 'username' : 'email';
+      return res.status(409).json({
+        code: `${field.toUpperCase()}_EXISTS`,
+        message: `${field} is already registered`
+      });
     }
 
-    if (!profilePicture) {
-        return res.status(400).json({ message: 'Profile picture is required' });
-    }
+    // Create new user
+    const hashedPassword = await bcrypt.hash(req.body.password, 12);
+    const newUser = new User({
+      ...req.body,
+      password: hashedPassword,
+      profilePicture: req.file.buffer,
+      lastLogin: null,
+      loginAttempts: 0,
+    });
 
-    try {
-        const existingUserByUsername = await User.findOne({ username });
-        if (existingUserByUsername) {
-            return res.status(400).json({ message: 'Username already exists' });
-        }
+    await newUser.save();
 
-        const existingUserByEmail = await User.findOne({ email });
-        if (existingUserByEmail) {
-            return res.status(400).json({ message: 'Email already exists' });
-        }
+    // Generate token
+    const token = generateToken(newUser);
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({
-            realName,
-            username,
-            email,
-            password: hashedPassword,
-            profilePicture: profilePicture.buffer, // Store the profile picture as a buffer
-        });
-        await newUser.save();
+    return res.status(201).json({
+      success: true,
+      token,
+      user: sanitizeUser(newUser)
+    });
 
-        const token = jwt.sign(
-            { userId: newUser._id, username: newUser.username },
-            jwtSecret,
-            { expiresIn: '1h' }
-        );
-
-        res.status(201).json({ message: 'User registered successfully', authtoken });
-    } catch (error) {
-        console.error('Registration Error:', error.message);
-        res.status(500).json({ message: 'Server error' });
-    }
+  } catch (error) {
+    console.error('Registration Error:', error);
+    return res.status(500).json({
+      code: 'SERVER_ERROR',
+      message: 'Could not complete registration'
+    });
+  }
 });
 
 // Login endpoint
-router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
+router.post('/login', authLimiter, async (req, res) => {
+  try {
+    // Validate input
+    const { error } = loginSchema.validate(req.body);
+    if (error) return res.status(422).json({
+      code: 'VALIDATION_ERROR',
+      message: error.details[0].message
+    });
 
-    if (!username || !password) {
-        return res.status(400).json({ message: 'All fields are required' });
+    // Find user with security considerations
+    const user = await User.findOne({ 
+      username: req.body.username 
+    }).select('+password +loginAttempts +lockedUntil');
+
+    if (!user || user.lockedUntil > Date.now()) {
+      return res.status(401).json({
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid username or password'
+      });
     }
 
-    try {
-        const user = await User.findOne({ username });
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid username or password' });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid username or password' });
-        }
-
-        const token = jwt.sign(
-            { userId: user._id, username: user.username },
-            jwtSecret,
-            { expiresIn: '1h' }
-        );
-
-        res.status(200).json({ message: 'Login successful', token });
-    } catch (error) {
-        console.error('Login Error:', error.message);
-        res.status(500).json({ message: 'Server error' });
+    // Check password
+    const isMatch = await bcrypt.compare(req.body.password, user.password);
+    if (!isMatch) {
+      user.loginAttempts += 1;
+      if (user.loginAttempts >= 5) {
+        user.lockedUntil = Date.now() + 15 * 60 * 1000; // 15 minute lock
+      }
+      await user.save();
+      return res.status(401).json({
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid username or password'
+      });
     }
+
+    // Reset security counters
+    user.loginAttempts = 0;
+    user.lockedUntil = null;
+    user.lastLogin = Date.now();
+    await user.save();
+
+    // Generate token
+    const token = generateToken(user);
+
+    return res.json({
+      success: true,
+      token,
+      user: sanitizeUser(user)
+    });
+
+  } catch (error) {
+    console.error('Login Error:', error);
+    return res.status(500).json({
+      code: 'SERVER_ERROR',
+      message: 'Could not process login'
+    });
+  }
 });
 
-// Endpoint to fetch the logged-in user information
-router.get('/api/loggedInUser', authenticateJWT, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.userId); // Fetch the user from the database using the userId from the token
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+// User info endpoint
+router.get('/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({
+      code: 'UNAUTHORIZED',
+      message: 'Authentication required'
+    });
 
-        // Return the user data, excluding the password
-        res.json({
-            id: user._id,
-            realName: user.realName,
-            username: user.username,
-            email: user.email,
-            profilePicture: user.profilePicture, // Assuming the profile picture is stored as a buffer
-        });
-    } catch (error) {
-        console.error('Error fetching logged-in user:', error.message);
-        res.status(500).json({ message: 'Server error' });
-    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+    
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(404).json({
+      code: 'USER_NOT_FOUND',
+      message: 'User account not found'
+    });
+
+    return res.json({
+      success: true,
+      user: sanitizeUser(user)
+    });
+
+  } catch (error) {
+    console.error('User Info Error:', error);
+    
+    const code = error.name === 'TokenExpiredError' ? 'TOKEN_EXPIRED' :
+                error.name === 'JsonWebTokenError' ? 'INVALID_TOKEN' : 'SERVER_ERROR';
+
+    return res.status(401).json({
+      code,
+      message: error.message
+    });
+  }
 });
 
 module.exports = router;

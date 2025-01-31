@@ -1,75 +1,118 @@
 import axios from 'axios';
 
-// Set the base URL for the API from environment variables
+// Configuration
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_TIMEOUT = 15000; // 15 seconds
 
-// Create an Axios instance with default configuration
+// Create Axios instance
 const api = axios.create({
   baseURL,
-  timeout: 10000,
+  timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
+    'X-Request-Id': crypto.randomUUID(), // For request tracing
   },
-  withCredentials: true, // Ensures cookies are sent with requests
+  withCredentials: true, // For cookies if using them
 });
 
-// Request interceptor to include token in headers
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authtoken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    console.error('Request Error:', error);
-    return Promise.reject(error);
+// Request Interceptor
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-);
+  
+  // Add request ID for error tracking
+  config.headers['X-Request-Id'] = crypto.randomUUID();
+  
+  return config;
+}, error => {
+  console.error('Request Error:', error);
+  return Promise.reject({
+    code: 'REQUEST_FAILED',
+    message: 'Failed to send request',
+    details: error.message
+  });
+});
 
-// Response interceptor for handling errors
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (!error.response) {
-      console.error('Network error:', error.message);
-      return Promise.reject(error);
+// Response Interceptor
+api.interceptors.response.use(response => {
+  // Transform successful responses
+  return {
+    ...response,
+    data: {
+      success: true,
+      ...response.data
     }
-    
-    const { status } = error.response;
-    switch (status) {
-      case 401:
-        console.error('Unauthorized! Redirecting to login...');
-        localStorage.removeItem('authtoken'); // Remove expired/invalid token
-        window.location.href = '/login';
-        break;
-      case 403:
-        console.error('Access denied! Insufficient permissions.');
-        break;
-      case 404:
-        console.error('Resource not found!');
-        break;
-      case 500:
-        console.error('Server error! Please try again later.');
-        break;
-      default:
-        console.error(`API Error (${status}):`, error.response.data || 'Unknown error');
-    }
+  };
+}, error => {
+  // Structured error handling
+  const errorResponse = {
+    code: 'UNKNOWN_ERROR',
+    message: 'An unexpected error occurred',
+    details: '',
+    status: 500
+  };
 
-    return Promise.reject(error);
+  if (error.response) {
+    // Handle API error responses
+    const { status, data } = error.response;
+    errorResponse.status = status;
+    errorResponse.code = data.code || `HTTP_${status}`;
+    errorResponse.message = data.message || error.message;
+    errorResponse.details = data.details;
+
+    // Specific error handling
+    if (status === 401) {
+      localStorage.removeItem('authToken');
+      window.location.href = '/login?session_expired=true';
+    }
+  } else if (error.request) {
+    // Handle no response errors
+    errorResponse.code = 'NETWORK_ERROR';
+    errorResponse.message = 'Unable to connect to the server';
+    errorResponse.details = error.message;
+  } else {
+    // Handle setup errors
+    errorResponse.code = 'CLIENT_ERROR';
+    errorResponse.message = 'Request configuration error';
+    errorResponse.details = error.message;
   }
-);
 
-// Fetch logged-in user
-export const fetchLoggedInUser = async () => {
+  console.error(`API Error [${errorResponse.code}]:`, errorResponse.message);
+  return Promise.reject(errorResponse);
+});
+
+// API Methods
+export const fetchLoggedInUser = async (signal) => {
   try {
-    const response = await api.get('/loggedInUser');
-    return response.data;
+    const response = await api.get('/me', { signal });
+    return response.data.data;
   } catch (error) {
-    console.error('Failed to fetch logged-in user:', error);
+    if (error.code !== 'HTTP_401') { // Skip logging for unauthorized
+      console.error('Failed to fetch user:', error);
+    }
     throw error;
   }
 };
 
+export const queryHandler = async (config) => {
+  try {
+    const response = await api(config);
+    return response.data.data;
+  } catch (error) {
+    console.error('API Request Failed:', error);
+    throw error;
+  }
+};
+
+// Helper for common operations
+export const apiWrapper = {
+  get: (url, config) => queryHandler({ ...config, method: 'get', url }),
+  post: (url, data, config) => queryHandler({ ...config, method: 'post', url, data }),
+  put: (url, data, config) => queryHandler({ ...config, method: 'put', url, data }),
+  delete: (url, config) => queryHandler({ ...config, method: 'delete', url }),
+};
+
+// Export configured instance
 export default api;

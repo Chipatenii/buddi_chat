@@ -2,155 +2,158 @@ const express = require("express");
 const http = require("http");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const multer = require("multer");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const dotenv = require("dotenv");
+const mongoSanitize = require("express-mongo-sanitize");
+const { logger, morganStream } = require("./utils/logger");
 const authRoutes = require("./routes/auth");
 const protectedRoutes = require("./routes/protectedRoutes");
 const userRoutes = require("./routes/userRoutes");
-const authenticate = require("./middleware/authMiddleware"); // Middleware for authentication
-const User = require("./models/User"); // User model for database operations
+const chatRoutes = require("./routes/chatRoutes");
+const { joiErrorHandler } = require("./middleware/validation");
+const authenticate = require("./middleware/authMiddleware");
 
 dotenv.config();
 const app = express();
 
-// ========================== Middleware ==========================
-app.use(helmet()); // Enhances security by setting various HTTP headers
-app.use(express.json()); // Parses incoming JSON requests
-
-// CORS Configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(",") 
-  : ["http://localhost:3000", "http://localhost:5173"];
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS not allowed for this origin"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true, // Allows cookies (important for authentication)
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
-// Backup: Manually Set CORS Headers
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:5173");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  next();
-});
-
-// Rate Limiting to prevent API abuse
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Max 100 requests per IP
-  message: "Too many requests from this IP, please try again later.",
-});
-app.use(limiter);
-
-// ========================== File Upload Handling ==========================
-app.use("/uploads", express.static("uploads")); // Serve uploaded files
-
-const storage = multer.diskStorage({
-  destination: "./uploads",
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    cb(null, `${timestamp}-${file.originalname.replace(/\s+/g, "-").toLowerCase()}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB file size limit
-  fileFilter: (req, file, cb) => {
-    if (["image/jpeg", "image/png", "image/gif"].includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only .jpeg, .png, and .gif formats are allowed!"), false);
-    }
-  },
-});
-
-// ========================== MongoDB Connection ==========================
+// ======================== Database Connection ========================
 const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/buddi_chat";
 
-mongoose
-  .connect(mongoURI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => {
-    console.error("❌ DB Connection Error:", err);
+const mongooseOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  autoIndex: process.env.NODE_ENV !== 'production',
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000
+};
+
+mongoose.connect(mongoURI, mongooseOptions)
+  .then(() => logger.info("✅ MongoDB connected"))
+  .catch(err => {
+    logger.error("❌ DB Connection Error:", err);
     process.exit(1);
   });
 
-// ========================== API Routes ==========================
-app.use("/api/auth", authRoutes);
-app.use("/api/protected", authenticate, protectedRoutes);
-app.use("/api/loggedInUser", authenticate, userRoutes);
+mongoose.connection.on('disconnected', () => 
+  logger.warn('MongoDB connection disconnected'));
 
-/**
- * Get Logged-in User Information
- */
-app.get("/api/loggedInUser", authenticate, async (req, res, next) => {
-  try {
-    const userId = req.user.id; // Extracted from authenticate middleware
-    const user = await User.findById(userId).select("-password");
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+// ======================== Middleware Configuration ========================
+// Security Headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https://*.example.com"]
     }
-    res.status(200).json({ success: true, user });
-  } catch (error) {
-    next(error);
+  },
+  hsts: {
+    maxAge: 63072000,
+    includeSubDomains: true,
+    preload: true
   }
+}));
+
+// Request Logging
+app.use(require('morgan')('combined', { stream: morganStream }));
+
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false
 });
 
-// ========================== Error Handling Middleware ==========================
-/**
- * Global Error Handler
- */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: 'Too many login attempts, please try again later'
+});
+
+// CORS Configuration
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(",") 
+    : ["http://localhost:3000", "http://localhost:5173"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  credentials: true,
+  maxAge: 86400
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Body Parsing
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// Data Sanitization
+app.use(mongoSanitize());
+
+// ======================== Route Configuration ========================
+// Public Routes
+app.use("/api/auth", authLimiter, authRoutes);
+
+// Protected Routes
+app.use("/api/users", apiLimiter, authenticate, userRoutes);
+app.use("/api/chat", apiLimiter, authenticate, chatRoutes);
+app.use("/api/protected", apiLimiter, authenticate, protectedRoutes);
+
+// ======================== Error Handling ========================
+app.use(joiErrorHandler);
 app.use((err, req, res, next) => {
-  console.error("⚠️ Error:", err.stack);
-  res.status(err.status || 500).json({
+  logger.error(`⚠️ Error: ${err.message}`, {
+    path: req.path,
+    method: req.method,
+    stack: err.stack
+  });
+
+  const statusCode = err.statusCode || 500;
+  const message = statusCode === 500 ? 'Internal Server Error' : err.message;
+  
+  res.status(statusCode).json({
     success: false,
-    message: err.message || "Internal Server Error",
+    code: err.code || 'SERVER_ERROR',
+    message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
-/**
- * 404 Handler
- */
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: "Resource not found" });
+  res.status(404).json({ 
+    success: false,
+    code: 'NOT_FOUND',
+    message: 'Resource not found' 
+  });
 });
 
-// ========================== Start Server ==========================
+// ======================== Server Initialization ========================
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5001;
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
-
-// ========================== Graceful Shutdown ==========================
-process.on("unhandledRejection", (err) => {
-  console.error("🔥 Unhandled Promise Rejection:", err);
-  process.exit(1);
-});
-
-process.on("SIGTERM", () => {
-  console.log("👋 Shutting down server gracefully...");
-  server.close(() => {
-    console.log("🛑 Server closed.");
+const shutdown = (signal) => {
+  logger.info(`Received ${signal}, shutting down gracefully...`);
+  server.close(async () => {
+    await mongoose.connection.close();
+    logger.info('🛑 Server and database connections closed');
     process.exit(0);
   });
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+process.on('unhandledRejection', (err) => {
+  logger.error('🔥 Unhandled Promise Rejection:', err);
+  shutdown('unhandledRejection');
+});
+
+server.listen(PORT, () => {
+  logger.info(`🚀 Server running on port ${PORT}`);
+  if (process.env.NODE_ENV === 'development') {
+    logger.debug('Development mode enabled');
+  }
 });

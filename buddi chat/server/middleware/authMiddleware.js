@@ -1,50 +1,118 @@
 const jwt = require('jsonwebtoken');
 
+// Centralized error messages
+const ERROR_MESSAGES = {
+  NO_TOKEN: 'Authentication required. Please provide a valid bearer token.',
+  INVALID_TOKEN: 'Invalid or malformed authentication token.',
+  EXPIRED_TOKEN: 'Session expired. Please log in again.',
+  SERVER_ERROR: 'Authentication server error. Please try again later.',
+};
+
 const authenticateToken = (req, res, next) => {
-    try {
-        const authHeader = req.headers['authorization'];
+  // Prefer lowercase header key for consistency
+  const authHeader = req.headers.authorization;
+  
+  // Validate Authorization header structure
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      code: 'MISSING_CREDENTIALS',
+      message: ERROR_MESSAGES.NO_TOKEN,
+    });
+  }
 
-        // Check if the Authorization header is present and properly formatted
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                success: false,
-                message: 'Access denied. Token missing or invalid.',
-            });
-        }
+  // Extract and validate token
+  const token = authHeader.split(' ')[1]?.trim();
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      code: 'MALFORMED_TOKEN',
+      message: ERROR_MESSAGES.INVALID_TOKEN,
+    });
+  }
 
-        // Extract the token from the Authorization header
-        const token = authHeader.split(' ')[1];
+  // Verify token with additional security checks
+  try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable not configured');
+    }
 
-        // Verify and decode the token
-        const decoded = jwt.verify(authtoken, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ['HS256'], // Specify allowed algorithms
+      ignoreExpiration: false, // Explicitly handle expiration
+    });
 
-        // Attach the decoded user information to the request object
-        req.user = decoded;
+    // Validate decoded payload structure
+    if (!decoded?.id || typeof decoded.id !== 'string') {
+      return res.status(401).json({
+        success: false,
+        code: 'INVALID_TOKEN_PAYLOAD',
+        message: ERROR_MESSAGES.INVALID_TOKEN,
+      });
+    }
 
-        // Proceed to the next middleware or route handler
-        next();
-    } catch (err) {
-        // Differentiate between expired and invalid tokens
-        if (err.name === 'TokenExpiredError') {
-            return res.status(401).json({
-                success: false,
-                message: 'Token expired. Please log in again.',
-            });
-        }
-        if (err.name === 'JsonWebTokenError') {
-            return res.status(403).json({
-                success: false,
-                message: 'Invalid token. Access denied.',
-            });
-        }
+    // Attach minimal user information to request
+    req.user = {
+      id: decoded.id,
+      // Add other safe-to-expose claims as needed
+      role: decoded.role,
+    };
 
-        // Handle other unexpected errors
-        console.error('Token verification error:', err.message);
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while verifying the token.',
+    // Add authentication context to response locals
+    res.locals.auth = {
+      authenticatedAt: new Date().toISOString(),
+      tokenExpires: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null,
+    };
+
+    // Log successful authentication in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Authenticated user ${decoded.id}`);
+    }
+
+    next();
+  } catch (err) {
+    // Handle specific JWT errors
+    switch (err.name) {
+      case 'TokenExpiredError':
+        return res.status(401).json({
+          success: false,
+          code: 'TOKEN_EXPIRED',
+          message: ERROR_MESSAGES.EXPIRED_TOKEN,
+          expiresAt: err.expiredAt.toISOString(),
+        });
+
+      case 'JsonWebTokenError':
+        return res.status(401).json({
+          success: false,
+          code: 'INVALID_TOKEN',
+          message: ERROR_MESSAGES.INVALID_TOKEN,
+          details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+        });
+
+      case 'NotBeforeError':
+        return res.status(401).json({
+          success: false,
+          code: 'TOKEN_INACTIVE',
+          message: 'Token not yet valid',
+          activeFrom: err.date.toISOString(),
+        });
+
+      default:
+        // Log full error for server-side investigation
+        console.error('Authentication Error:', {
+          error: err.stack,
+          token: token.substring(0, 16) + '...', // Partial token for debugging
+          path: req.originalUrl,
+        });
+
+        return res.status(500).json({
+          success: false,
+          code: 'AUTH_SERVER_ERROR',
+          message: ERROR_MESSAGES.SERVER_ERROR,
+          details: process.env.NODE_ENV === 'development' ? err.message : undefined,
         });
     }
+  }
 };
 
 module.exports = authenticateToken;

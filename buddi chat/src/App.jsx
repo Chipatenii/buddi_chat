@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useContext, useEffect, useState } from 'react';
 import { ThemeContext } from './context/ThemeContext';
-import api from './services/apiService';
+import { fetchLoggedInUser } from './services/apiService';
 
 // Page Components
 import HomePage from './pages/HomePage';
@@ -41,16 +41,19 @@ const AppContent = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const { data } = await api.get('/loggedInUser');
+        console.log('Fetching user data...');
+        const data = await fetchLoggedInUser();
+        console.log('User data fetched:', data);
         setUserId(data?.userId);
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
         setIsLoading(false);
+        console.log('Loading state set to false');
       }
     };
 
-    fetchUserData(localStorage.getItem('authtoken'));
+    fetchUserData();
   }, []); // Empty dependency array ensures this runs only once
 
   return (

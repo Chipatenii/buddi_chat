@@ -1,58 +1,181 @@
 const express = require('express');
 const authenticateToken = require('../middleware/authMiddleware');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
-// Logger middleware for debugging
-router.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    next();
-});
-
-// Protected route to fetch user profile information
-router.get('/profile', authenticateToken, (req, res) => {
-    try {
-        res.status(200).json({
-            message: `Welcome, ${req.user.username}!`,
-            user: {
-                id: req.user.id,
-                username: req.user.username,
-                email: req.user.email, // If included in token
-                role: req.user.role    // If applicable
-            }
-        });
-    } catch (err) {
-        console.error('Error in /profile route:', err.message);
-        res.status(500).json({ message: 'An error occurred while fetching profile information.' });
-    }
-});
-
-// Example role-based protected route
-const checkRole = (role) => (req, res, next) => {
-    if (req.user.role !== role) {
-        return res.status(403).json({ message: 'Access denied. Insufficient permissions.' });
-    }
-    next();
+// ======================== Configuration ========================
+const ROLES = {
+  ADMIN: 'admin',
+  USER: 'user',
+  MODERATOR: 'moderator'
 };
 
-router.get('/admin', authenticateToken, checkRole('admin'), (req, res) => {
-    res.status(200).json({ message: 'Welcome to the admin panel!' });
+const ROUTE_LIMITER = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// New protected route to fetch logged-in user information
-router.get('/loggedInUser', authenticateToken, (req, res) => {
-    try {
-        // You can modify the response according to your user model and available fields
-        res.status(200).json({
-            id: req.user.id,
-            username: req.user.username,
-            email: req.user.email, // Assuming the token has email info
-            role: req.user.role    // Assuming the token has a role field
-        });
-    } catch (err) {
-        console.error('Error in /loggedInUser route:', err.message);
-        res.status(500).json({ message: 'An error occurred while fetching logged-in user information.' });
+// ======================== Middlewares ========================
+// Enhanced security headers
+router.use(helmet());
+router.use(helmet.hsts({
+  maxAge: 63072000, // 2 years in seconds
+  includeSubDomains: true,
+  preload: true
+}));
+
+// Structured logging middleware
+router.use((req, res, next) => {
+  const start = Date.now();
+  const requestId = uuidv4();
+  
+  res.on('finish', () => {
+    console.log(JSON.stringify({
+      requestId,
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      duration: Date.now() - start + 'ms',
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      userId: req.user?.id || 'anonymous'
+    }));
+  });
+  
+  next();
+});
+
+// ======================== Utility Functions ========================
+const handleAsync = (fn) => (req, res, next) => 
+  Promise.resolve(fn(req, res, next)).catch(next);
+
+const createRoleCheck = (...allowedRoles) => (req, res, next) => {
+  if (!req.user?.role || !allowedRoles.includes(req.user.role)) {
+    return res.status(403).json({
+      code: 'FORBIDDEN',
+      message: 'Insufficient permissions',
+      requiredRoles: allowedRoles,
+      currentRole: req.user?.role
+    });
+  }
+  next();
+};
+
+// ======================== Routes ========================
+/**
+ * @swagger
+ * /profile:
+ *   get:
+ *     summary: Get current user profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile data
+ */
+router.get('/profile', ROUTE_LIMITER, authenticateToken, handleAsync(async (req, res) => {
+  const userProfile = {
+    id: req.user.id,
+    username: req.user.username,
+    email: req.user.email,
+    role: req.user.role,
+    createdAt: req.user.createdAt,
+    lastLogin: req.user.lastLogin
+  };
+
+  res.status(200).json({
+    success: true,
+    data: userProfile,
+    meta: {
+      requestId: res.locals.requestId,
+      timestamp: new Date().toISOString()
     }
+  });
+}));
+
+/**
+ * @swagger
+ * /admin:
+ *   get:
+ *     summary: Admin dashboard
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Admin access granted
+ */
+router.get('/admin', 
+  ROUTE_LIMITER,
+  authenticateToken,
+  createRoleCheck(ROLES.ADMIN, ROLES.MODERATOR),
+  handleAsync(async (req, res) => {
+    res.status(200).json({
+      success: true,
+      data: {
+        message: 'Admin dashboard',
+        sensitiveActions: [],
+        auditLog: []
+      },
+      meta: {
+        userRole: req.user.role,
+        accessLevel: 'admin'
+      }
+    });
+  })
+);
+
+/**
+ * @swagger
+ * /me:
+ *   get:
+ *     summary: Get current user details
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User details
+ */
+router.get('/me', 
+  ROUTE_LIMITER,
+  authenticateToken,
+  handleAsync(async (req, res) => {
+    // Example of fetching fresh data from DB
+    const freshUserData = await User.findById(req.user.id)
+      .select('-password -loginAttempts -lockedUntil')
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      data: freshUserData,
+      meta: {
+        cache: false,
+        requestedAt: new Date().toISOString()
+      }
+    });
+  })
+);
+
+// ======================== Error Handling ========================
+router.use((err, req, res, next) => {
+  console.error('Route Error:', {
+    error: err.stack,
+    userId: req.user?.id,
+    path: req.path,
+    params: req.params
+  });
+
+  res.status(err.status || 500).json({
+    success: false,
+    code: err.code || 'SERVER_ERROR',
+    message: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
 module.exports = router;
