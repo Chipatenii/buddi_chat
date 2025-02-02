@@ -1,0 +1,31 @@
+/* Error page styling */
+.error-page {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+  }
+  
+  .error-illustration {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    margin: 2rem 0;
+  }
+  
+  .error-support {
+    margin: 2rem 0;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    background: var(--color-background-alt);
+  }
+  
+  .error-actions {
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  
+  .error-stack {
+    margin-top: 2rem;
+    border-radius: var(--border-radius);
+    background: var(--color-background-alt);
+  }

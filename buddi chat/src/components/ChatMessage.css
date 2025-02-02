@@ -1,18 +1,89 @@
-.chat-message {
-    background-color: #f1f1f1;
-    border-radius: 15px;
-    padding: 10px;
-    margin: 10px 0;
-    max-width: 60%;
-    word-wrap: break-word;
-}
-
-.chat-message.sent {
-    background-color: #d1e7dd;
-    align-self: flex-end;
-}
-
-.chat-message.received {
-    background-color: #ffffff;
-    align-self: flex-start;
-}
+:root {
+    --chat-bg-incoming: var(--color-background-alt);
+    --chat-bg-outgoing: var(--color-primary);
+    --chat-text-incoming: var(--color-text-primary);
+    --chat-text-outgoing: white;
+  }
+  
+  /* Message Container */
+  .message {
+    max-width: 75%;
+    margin: var(--spacing-md) 0;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-sm);
+  }
+  
+  .message.incoming {
+    background: var(--chat-bg-incoming);
+    color: var(--chat-text-incoming);
+    margin-right: auto;
+  }
+  
+  .message.outgoing {
+    background: var(--chat-bg-outgoing);
+    color: var(--chat-text-outgoing);
+    margin-left: auto;
+  }
+  
+  /* Message Header */
+  .message-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .message-sender {
+    font-weight: 500;
+  }
+  
+  .message-time {
+    font-size: 0.8em;
+    opacity: 0.8;
+  }
+  
+  /* Input Container */
+  .chat-input-container {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--color-background);
+    border-top: 1px solid var(--color-border);
+  }
+  
+  /* Sidebar Styles */
+  .chat-sidebar {
+    width: 280px;
+    border-right: 1px solid var(--color-border);
+    background: var(--color-background-alt);
+  }
+  
+  .user-list-item {
+    padding: var(--spacing-sm);
+    transition: background-color var(--transition-base);
+  }
+  
+  .user-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  .user-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .user-name {
+    font-weight: 500;
+    display: block;
+  }
+  
+  .user-bio {
+    font-size: 0.9em;
+    opacity: 0.8;
+    margin: 0;
+  }

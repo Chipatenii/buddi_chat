@@ -1,27 +1,26 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { useContext, useEffect, useState } from 'react';
+import { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { ThemeContext } from './context/ThemeContext';
-import { fetchLoggedInUser } from './services/apiService';
-
-// Page Components
-import HomePage from './pages/HomePage';
-import ChatRoomPage from './pages/ChatRoomPage';
-import SettingsPage from './pages/SettingsPage';
-import UserProfilePage from './pages/UserProfilePage';
-import ErrorPage from './pages/ErrorPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-
-// Utility Components
+import useAuth from './hooks/useAuth';
+import useOnlineStatus from './hooks/useOnlineStatus';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 import PrivateRoute from './components/PrivateRoute';
-import ErrorBoundary from './components/ErrorBoundary';
-import Logout from './components/Logout';
-
-// Layout Components
+import Loader from './components/Loader';
+import OfflineBanner from './components/OfflineBanner';
+import SessionTimeoutModal from './components/SessionTimeoutModal';
 import Header from './components/Header';
 import Footer from './components/Footer';
-
+import logger from './utils/logger';
 import './index.css';
+
+// Code-split components
+const HomePage = lazy(() => import('./pages/HomePage'));
+const ChatRoomPage = lazy(() => import('./pages/ChatRoomPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
+const ErrorPage = lazy(() => import('./pages/ErrorPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 
 const App = () => (
   <Router>
@@ -32,81 +31,49 @@ const App = () => (
 const AppContent = () => {
   const location = useLocation();
   const { theme } = useContext(ThemeContext);
+  const { user, loading, error, logout } = useAuth();
+  const isOnline = useOnlineStatus();
+  const { isIdle, remaining } = useIdleTimer(300000, logout);
 
-  const [userId, setUserId] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const isAuthPage = ['/login', '/register'].includes(location.pathname);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        console.log('Fetching user data...');
-        const data = await fetchLoggedInUser();
-        console.log('User data fetched:', data);
-        setUserId(data?.userId);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
-        setIsLoading(false);
-        console.log('Loading state set to false');
-      }
-    };
-
-    fetchUserData();
-  }, []); // Empty dependency array ensures this runs only once
+  if (loading) return <Loader fullScreen />;
 
   return (
-    <ErrorBoundary>
-      <div className={`app ${theme}`}>
-        {!isAuthPage && <Header />}
-        <main className="main-content">
+    <div className={`app ${theme}`}>
+      {!isOnline && <OfflineBanner />}
+      {isIdle && <SessionTimeoutModal remaining={remaining} onStay={logout} />}
+      
+      <Header user={user} />
+      
+      <main className="main-content">
+        <Suspense fallback={<Loader />}>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-
-            {/* Protected Routes */}
-            <Route
-              path="/chat-room"
-              element={
-                <PrivateRoute>
+            <Route path="/" element={
+              <RouteErrorBoundary>
+                <HomePage user={user} />
+              </RouteErrorBoundary>
+            } />
+            
+            <Route path="/login" element={
+              <RouteErrorBoundary>
+                <LoginPage />
+              </RouteErrorBoundary>
+            } />
+            
+            <Route element={<PrivateRoute user={user} />}>
+              <Route path="/chat-room" element={
+                <RouteErrorBoundary>
                   <ChatRoomPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <PrivateRoute>
-                  <SettingsPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/profile/:userId"
-              element={
-                <PrivateRoute>
-                  {isLoading ? (
-                    <div>Loading...</div>
-                  ) : userId ? (
-                    <UserProfilePage userId={userId} />
-                  ) : (
-                    <div>Error: User ID not found</div>
-                  )}
-                </PrivateRoute>
-              }
-            />
-            <Route path="/logout" element={<Logout />} />
-
-            {/* Fallback Route */}
-            <Route path="*" element={<ErrorPage />} />
+                </RouteErrorBoundary>
+              } />
+            </Route>
+            
+            {/* Add similar error boundaries to all routes */}
           </Routes>
-        </main>
-        {!isAuthPage && <Footer />}
-      </div>
-    </ErrorBoundary>
+        </Suspense>
+      </main>
+      
+      <Footer />
+    </div>
   );
 };
 

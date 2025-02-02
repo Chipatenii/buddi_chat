@@ -1,0 +1,32 @@
+.loader {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .full-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  
+  .spinner {
+    animation: spin 1s linear infinite;
+    border-radius: 50%;
+  }
+  
+  .spinner-primary {
+    border: 3px solid var(--color-primary);
+    border-top-color: transparent;
+  }
+  
+  .spinner-secondary {
+    border: 3px solid var(--color-secondary);
+    border-top-color: transparent;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }

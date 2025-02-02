@@ -1,72 +1,142 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
+import { useParams } from 'react-router-dom';
+import { Button, Card, Loader, ErrorMessage } from '../components/ui'; // Shared UI components
+import { fetchUserProfile } from '../services/userService'; // Centralized API service
+import logger from '../utils/logger';
+import { APP_ROUTES } from '../constants';
+import useAuth from '../hooks/useAuth';
 
-const UserProfile = ({ userId }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Explicit loading state
-  const [error, setError] = useState(null);    // Error handling state
+const UserProfile = () => {
+  const { userId } = useParams();
+  const { user: currentUser } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const controller = new AbortController();
+
+    const loadProfile = async () => {
       try {
-        console.log(`Fetching data for userId: ${userId}`);
-        const response = await fetch(`/api/loggedInUser/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('authtoken')}`,
-          },
+        logger.debug(`Fetching profile for user: ${userId}`);
+        const userData = await fetchUserProfile(userId, {
+          signal: controller.signal
         });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('User data fetched:', data);
-        setUser(data);
-        setError(null); // Clear any previous errors
+        
+        setProfile(userData);
+        setError(null);
+        logger.info('Profile loaded successfully', { userId });
       } catch (error) {
-        console.error('Error fetching user data:', error);
-        setError('Failed to load user data.'); // Set error state
+        if (error.name !== 'AbortError') {
+          logger.error('Profile load failed', error);
+          setError({
+            code: error.response?.status || 500,
+            message: error.response?.data?.message || 'Failed to load profile'
+          });
+        }
       } finally {
-        setLoading(false); // Loading is done
+        setLoading(false);
       }
     };
 
     if (userId) {
-      fetchUserData();
+      loadProfile();
     }
+
+    return () => controller.abort();
   }, [userId]);
 
   if (loading) {
-    return <div>Loading...</div>; // Show explicit loading state
+    return <Loader fullScreen />;
   }
 
   if (error) {
-    return <div>Error: {error}</div>; // Display error message
+    return (
+      <ErrorMessage 
+        code={error.code}
+        message={error.message}
+        onRetry={() => window.location.reload()}
+      />
+    );
   }
 
-  if (!user) {
-    return <div>No user data found.</div>; // Handle unexpected empty user state
+  if (!profile) {
+    return <Navigate to={APP_ROUTES.NOT_FOUND} replace />;
   }
+
+  const isCurrentUser = currentUser?.id === userId;
 
   return (
-    <div className="container mt-5">
-      <div className="card shadow-sm mx-auto" style={{ maxWidth: '600px' }}>
-        <div className="card-body text-center">
+    <div className="profile-page container py-4">
+      <Card className="mx-auto" style={{ maxWidth: '800px' }}>
+        <div className="profile-header text-center p-4">
           <img
-            src={user.profilePicture || 'https://via.placeholder.com/120'}
-            alt={`${user.username || 'User'}'s profile`}
-            className="rounded-circle mb-3"
-            style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+            src={profile.profilePicture || '/images/default-avatar.jpg'}
+            alt={`${profile.username}'s profile`}
+            className="profile-picture rounded-circle mb-3"
+            width="150"
+            height="150"
           />
-          <h3 className="card-title">{user.username || 'No Username'}</h3>
-          <p className="text-muted">{user.bio || 'No bio available'}</p>
-          <p>
-            Email: <span className="text-primary">{user.email || 'No email'}</span>
-          </p>
-          <button className="btn btn-primary">Edit Profile</button>
+          <h1 className="profile-username h2 mb-2">
+            {profile.username}
+          </h1>
+          {profile.bio && (
+            <p className="profile-bio text-muted lead mb-4">
+              {profile.bio}
+            </p>
+          )}
         </div>
-      </div>
+
+        <div className="profile-details p-4">
+          <div className="row">
+            <div className="col-md-6 mb-3">
+              <h3 className="h5 mb-3">Contact Information</h3>
+              <ul className="list-unstyled">
+                <li className="mb-2">
+                  <strong>Email:</strong> {profile.email}
+                </li>
+                {profile.phone && (
+                  <li className="mb-2">
+                    <strong>Phone:</strong> {profile.phone}
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            <div className="col-md-6 mb-3">
+              <h3 className="h5 mb-3">Activity</h3>
+              <ul className="list-unstyled">
+                <li className="mb-2">
+                  <strong>Joined:</strong> {new Date(profile.createdAt).toLocaleDateString()}
+                </li>
+                <li className="mb-2">
+                  <strong>Last Active:</strong> {new Date(profile.lastLogin).toLocaleString()}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {isCurrentUser && (
+          <div className="profile-actions p-4 border-top">
+            <Button
+              as={Link}
+              to={APP_ROUTES.EDIT_PROFILE}
+              variant="primary"
+              className="me-2"
+            >
+              Edit Profile
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => navigate(APP_ROUTES.CHANGE_PASSWORD)}
+            >
+              Change Password
+            </Button>
+          </div>
+        )}
+      </Card>
     </div>
   );
 };

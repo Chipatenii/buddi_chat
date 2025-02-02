@@ -1,37 +1,47 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
+import { Button, Input } from '../ui';
+import { useTheme } from '../context/ThemeContext';
 
-const ChatInput = ({ onSend }) => {
+const ChatInput = ({ onSend, disabled }) => {
   const [message, setMessage] = useState('');
+  const { theme } = useTheme();
 
-  const handleSend = () => {
-    if (message.trim()) {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (message.trim() && !disabled) {
       onSend(message);
       setMessage('');
     }
   };
 
   return (
-    <div className="d-flex align-items-center gap-2 p-3 border-top border-secondary">
-      <input
-        type="text"
-        className="form-control flex-grow-1"
-        placeholder="Type your message..."
+    <form 
+      className="chat-input-container"
+      onSubmit={handleSubmit}
+    >
+      <Input
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={(e) => setMessage(e.targetValue)}
+        placeholder="Type your message..."
+        disabled={disabled}
+        aria-label="Chat message input"
       />
-      <button
-        className="btn btn-primary"
-        onClick={handleSend}
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={!message.trim() || disabled}
+        aria-label="Send message"
       >
         Send
-      </button>
-    </div>
+      </Button>
+    </form>
   );
 };
 
 ChatInput.propTypes = {
   onSend: PropTypes.func.isRequired,
+  disabled: PropTypes.bool.isRequired
 };
 
 export default ChatInput;

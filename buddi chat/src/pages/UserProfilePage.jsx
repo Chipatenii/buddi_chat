@@ -1,72 +1,127 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Card, Loader, ErrorMessage, Button } from '../components/ui';
+import api from '../services/apiService';
+import logger from '../utils/logger';
+import { DEFAULT_AVATAR, APP_ROUTES } from '../constants';
+import useAuth from '../hooks/useAuth';
 
-const UserProfile = ({ userId }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Explicit loading state
-  const [error, setError] = useState(null);    // Error handling state
+const UserProfile = () => {
+  const { userId } = useParams();
+  const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const controller = new AbortController();
+
+    const fetchProfile = async () => {
       try {
-        console.log(`Fetching data for userId: ${userId}`);
-        const response = await fetch(`/api/loggedInUser/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('authtoken')}`,
-          },
+        logger.debug(`Initiating profile fetch for user: ${userId}`);
+        const response = await api.get(`/users/${userId}`, {
+          signal: controller.signal
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error: ${response.status}`);
+        setProfile(response.data);
+        setError(null);
+        logger.info('Profile data loaded successfully', { userId });
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          logger.error('Profile load failed', err);
+          setError({
+            code: err.response?.status || 500,
+            message: err.response?.data?.message || 'Failed to load profile data'
+          });
         }
-
-        const data = await response.json();
-        console.log('User data fetched:', data);
-        setUser(data);
-        setError(null); // Clear any previous errors
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        setError('Failed to load user data.'); // Set error state
       } finally {
-        setLoading(false); // Loading is done
+        setLoading(false);
       }
     };
 
     if (userId) {
-      fetchUserData();
+      fetchProfile();
     }
+
+    return () => controller.abort();
   }, [userId]);
 
+  const handleEditProfile = () => {
+    navigate(APP_ROUTES.EDIT_PROFILE);
+  };
+
   if (loading) {
-    return <div>Loading...</div>; // Show explicit loading state
+    return <Loader fullScreen />;
   }
 
   if (error) {
-    return <div>Error: {error}</div>; // Display error message
+    return (
+      <ErrorMessage 
+        code={error.code}
+        message={error.message}
+        retry={() => window.location.reload()}
+      />
+    );
   }
 
-  if (!user) {
-    return <div>No user data found.</div>; // Handle unexpected empty user state
+  if (!profile) {
+    return <Navigate to={APP_ROUTES.NOT_FOUND} replace />;
   }
+
+  const isCurrentUser = currentUser?.id === userId;
 
   return (
-    <div className="container mt-5">
-      <div className="card shadow-sm mx-auto" style={{ maxWidth: '600px' }}>
-        <div className="card-body text-center">
+    <div className="profile-container container py-5">
+      <Card className="mx-auto profile-card">
+        <div className="profile-header text-center p-4">
           <img
-            src={user.profilePicture || 'https://via.placeholder.com/120'}
-            alt={`${user.username || 'User'}'s profile`}
-            className="rounded-circle mb-3"
-            style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+            src={profile.profilePicture || DEFAULT_AVATAR}
+            alt={`${profile.username}'s profile`}
+            className="profile-avatar rounded-circle"
+            width="150"
+            height="150"
+            loading="lazy"
           />
-          <h3 className="card-title">{user.username || 'No Username'}</h3>
-          <p className="text-muted">{user.bio || 'No bio available'}</p>
-          <p>
-            Email: <span className="text-primary">{user.email || 'No email'}</span>
-          </p>
-          <button className="btn btn-primary">Edit Profile</button>
+          <h1 className="profile-username mt-3">
+            {profile.username}
+          </h1>
+          {profile.bio && (
+            <p className="profile-bio text-muted mt-2">
+              {profile.bio}
+            </p>
+          )}
         </div>
-      </div>
+
+        <div className="profile-details p-4">
+          <div className="detail-item">
+            <span className="detail-label">Email:</span>
+            <span className="detail-value">{profile.email}</span>
+          </div>
+          
+          {profile.joinedDate && (
+            <div className="detail-item">
+              <span className="detail-label">Member since:</span>
+              <span className="detail-value">
+                {new Date(profile.joinedDate).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {isCurrentUser && (
+          <div className="profile-actions p-4 border-top">
+            <Button
+              variant="primary"
+              onClick={handleEditProfile}
+              aria-label="Edit profile"
+            >
+              Edit Profile
+            </Button>
+          </div>
+        )}
+      </Card>
     </div>
   );
 };

@@ -1,40 +1,55 @@
 import PropTypes from 'prop-types';
+import { Avatar, MessageStatus } from '../components/ui';
+import { formatDateTime } from '../utils/date';
+import { useTheme } from '../context/ThemeContext';
 import './ChatMessage.css';
 
-const ChatMessage = ({ user, message, timestamp, isSent }) => {
-  // Fallbacks for missing user or invalid data
-  const userName = user?.name || 'Unknown User';
-  const userId = user?.id || 'N/A';
-  const displayTimestamp = timestamp ? new Date(timestamp).toLocaleTimeString() : 'Invalid Time';
-
+const ChatMessage = ({ message, isCurrentUser }) => {
+  const { theme } = useTheme();
+  
   return (
-    <div className={`chat-message ${isSent ? 'sent' : 'received'}`}>
-      <div className="d-flex align-items-center mb-2">
-        <div
-          className="avatar bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-2"
-          style={{ width: '40px', height: '40px' }}
-        >
-          {userName.charAt(0).toUpperCase()}
+    <div className={`message ${isCurrentUser ? 'outgoing' : 'incoming'}`}>
+      <div className="message-header">
+        {!isCurrentUser && (
+          <Avatar 
+            src={message.user.profilePicture}
+            name={message.user.name}
+            size="sm"
+          />
+        )}
+        <div className="message-meta">
+          <span className="message-sender">
+            {!isCurrentUser && message.user.name}
+          </span>
+          <time className="message-time">
+            {formatDateTime(message.timestamp, 'time')}
+          </time>
         </div>
-        <strong>{userName} ({userId})</strong>
       </div>
-      <p>{message}</p>
-      <small className="text-muted">{displayTimestamp}</small>
+      
+      <div className="message-body">
+        <p>{message.content}</p>
+        {isCurrentUser && (
+          <MessageStatus status={message.status} />
+        )}
+      </div>
     </div>
   );
 };
 
 ChatMessage.propTypes = {
-  user: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
+  message: PropTypes.shape({
+    id: PropTypes.string,
+    content: PropTypes.string.isRequired,
+    timestamp: PropTypes.string.isRequired,
+    status: PropTypes.oneOf(['sent', 'sending', 'failed']),
+    user: PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      name: PropTypes.string.isRequired,
+      profilePicture: PropTypes.string
+    }).isRequired
   }).isRequired,
-  message: PropTypes.string.isRequired,
-  timestamp: PropTypes.oneOfType([
-    PropTypes.instanceOf(Date),
-    PropTypes.string, // For handling ISO string timestamps
-  ]).isRequired,
-  isSent: PropTypes.bool.isRequired,
+  isCurrentUser: PropTypes.bool.isRequired
 };
 
 export default ChatMessage;

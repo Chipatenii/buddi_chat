@@ -1,96 +1,144 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ChatSidebar from '../components/ChatSidebar';
-import ChatMessage from '../components/ChatMessage';
-import ChatInput from '../components/ChatInput';
-import { connectWebSocket, closeWebSocket, sendMessage } from '../services/webSocketService';
-import { fetchLoggedInUser } from '../services/apiService';
+import { useNavigate, useParams } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import { Loader, ErrorMessage } from '../components/ui';
+import { ChatSidebar, ChatMessage, ChatInput } from '../components';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { useAuth } from '../hooks/useAuth';
+import { fetchChatRoom, fetchRoomUsers } from '../services/chatService';
+import { logger } from '../utils/logger';
+import { APP_ROUTES, WS_EVENTS } from '../constants';
 
 const ChatRoomPage = () => {
-    const [messages, setMessages] = useState([]);
-    const [chatRooms] = useState(['General', 'Random', 'Tech']);
-    const [currentRoom, setCurrentRoom] = useState('General');
-    const [users] = useState([
-        { id: '1', name: 'Mulenga', profilePicture: 'https://via.placeholder.com/150', bio: 'Loves tech' },
-        { id: '2', name: 'Mutambo', profilePicture: 'https://via.placeholder.com/150', bio: 'Enjoys gaming' },
-    ]);
-
-    const [loggedInUser, setLoggedInUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { roomId } = useParams();
     const navigate = useNavigate();
+    const { user: loggedInUser, loading: authLoading, error: authError } = useAuth();
+    const [room, setRoom] = useState(null);
+    const [users, setUsers] = useState([]);
+    const [messages, setMessages] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const { sendMessage, connectionStatus } = useWebSocket({
+        url: `/ws/rooms/${roomId}`,
+        onMessage: (message) => {
+            setMessages(prev => [...prev, message]);
+        },
+        onError: (error) => {
+            logger.error('WebSocket error:', error);
+            setError('Connection lost. Reconnecting...');
+        }
+    });
 
     useEffect(() => {
-        const token = localStorage.getItem('authtoken');
-        if (!token) {
-            navigate('/login'); 
+        if (authError) {
+            navigate(APP_ROUTES.LOGIN);
             return;
         }
 
-        const fetchData = async () => {
+        const loadRoomData = async () => {
             try {
-                const user = await fetchLoggedInUser(token);
-                setLoggedInUser(user);
+                const [roomData, usersData] = await Promise.all([
+                    fetchChatRoom(roomId),
+                    fetchRoomUsers(roomId)
+                ]);
+                
+                setRoom(roomData);
+                setUsers(usersData);
+                setMessages(roomData.messages);
             } catch (error) {
-                console.error('Error fetching logged-in user:', error);
-                localStorage.removeItem('authtoken');
-                navigate('/home');
+                logger.error('Chat room load error:', error);
+                setError(error.message);
+                navigate(APP_ROUTES.HOME);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchData();
-    }, [navigate]);
+        if (loggedInUser) {
+            loadRoomData();
+        }
+    }, [loggedInUser, roomId, navigate, authError]);
 
-    useEffect(() => {
-        if (!loggedInUser) return;
+    const handleSendMessage = async (content) => {
+        if (!content.trim() || !loggedInUser) return;
 
-        connectWebSocket((newMessage) => {
-            setMessages((prev) => [...prev, newMessage]);
-        });
-
-        return () => closeWebSocket();
-    }, [loggedInUser]); // Prevent unnecessary re-renders
-
-    const handleSendMessage = (message) => {
-        if (!loggedInUser) return;
-
+        const tempId = Date.now().toString();
         const newMessage = {
+            tempId,
+            content,
             user: loggedInUser,
-            message,
-            timestamp: new Date(),
+            timestamp: new Date().toISOString(),
+            status: 'sending'
         };
 
-        setMessages((prev) => [...prev, newMessage]);
-        sendMessage(newMessage);
+        setMessages(prev => [...prev, newMessage]);
+
+        try {
+            await sendMessage({
+                type: WS_EVENTS.MESSAGE,
+                roomId,
+                content,
+                userId: loggedInUser.id
+            });
+            
+            setMessages(prev => 
+                prev.map(msg => 
+                    msg.tempId === tempId ? { ...msg, status: 'sent' } : msg
+                )
+            );
+        } catch (error) {
+            logger.error('Message send failed:', error);
+            setMessages(prev => 
+                prev.map(msg => 
+                    msg.tempId === tempId ? { ...msg, status: 'failed' } : msg
+                )
+            );
+        }
     };
 
-    if (loading) {
-        return <p>Loading user data...</p>;
+    if (authLoading || loading) {
+        return <Loader fullScreen />;
+    }
+
+    if (error) {
+        return <ErrorMessage 
+            code="CHAT_LOAD_ERROR" 
+            message={error} 
+            retry={() => window.location.reload()} 
+        />;
     }
 
     return (
-        <div className="d-flex flex-column min-vh-100">
-            <div className="d-flex flex-grow-1 w-100">
-                <ChatSidebar users={users} />
-                <main className="flex-grow-1 p-5 d-flex flex-column w-100">
-                    <h2 className="mb-4 text-primary">{currentRoom} Room</h2>
-                    <div className="messages mb-5 flex-grow-1 overflow-auto">
-                        {messages.map((msg, index) => (
-                            <ChatMessage
-                                key={index}
-                                user={msg.user}
-                                message={msg.message}
-                                timestamp={msg.timestamp}
-                                isSent={msg.user.id === loggedInUser?.id}
-                            />
-                        ))}
-                    </div>
-                    <ChatInput onSend={handleSendMessage} />
-                </main>
-            </div>
+        <div className="chat-room-container">
+            <ChatSidebar 
+                users={users} 
+                room={room} 
+                connectionStatus={connectionStatus}
+            />
+            
+            <main className="chat-main-content">
+                <div className="chat-messages">
+                    {messages.map((message) => (
+                        <ChatMessage
+                            key={message.id || message.tempId}
+                            message={message}
+                            isCurrentUser={message.user.id === loggedInUser?.id}
+                        />
+                    ))}
+                </div>
+                
+                <ChatInput 
+                    onSend={handleSendMessage} 
+                    disabled={connectionStatus !== 'connected'}
+                />
+            </main>
         </div>
     );
+};
+
+ChatRoomPage.propTypes = {
+    roomId: PropTypes.string.isRequired
 };
 
 export default ChatRoomPage;
