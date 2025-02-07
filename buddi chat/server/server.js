@@ -1,159 +1,164 @@
-const express = require("express");
-const http = require("http");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
-const dotenv = require("dotenv");
-const mongoSanitize = require("express-mongo-sanitize");
-const { logger, morganStream } = require("./utils/logger");
-const authRoutes = require("./routes/auth");
-const protectedRoutes = require("./routes/protectedRoutes");
-const userRoutes = require("./routes/userRoutes");
-const chatRoutes = require("./routes/chatRoutes");
-const { joiErrorHandler } = require("./middleware/validation");
-const authenticate = require("./middleware/authMiddleware");
-
+import dotenv from 'dotenv';
 dotenv.config();
+import express from "express";
+import http from "http";
+import mongoose from "mongoose";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import mongoSanitize from "express-mongo-sanitize";
+import { logger, morganStream } from "./utils/logger.js";
+import authRoutes from "./routes/auth.js";
+import userRoutes from "./routes/userRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";  // Updated import
+import { joiErrorHandler } from "./middleware/validation.js";
+import authenticate from "./middleware/authMiddleware.js";
+
+// Initialize Express app
 const app = express();
 
-// ======================== Database Connection ========================
-const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/buddi_chat";
-
-const mongooseOptions = {
+// ======================== Database Configuration ========================
+const mongooseConfig = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  autoIndex: process.env.NODE_ENV !== 'production',
+  autoIndex: process.env.NODE_ENV === 'development',
   serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000
+  socketTimeoutMS: 45000,
+  family: 4, // Force IPv4
 };
 
-mongoose.connect(mongoURI, mongooseOptions)
-  .then(() => logger.info("✅ MongoDB connected"))
-  .catch(err => {
-    logger.error("❌ DB Connection Error:", err);
+mongoose.connect(process.env.MONGO_URI, mongooseConfig)
+  .then(() => logger.info('✅ MongoDB connection established'))
+  .catch((err) => {
+    logger.error('❌ MongoDB connection error:', err);
     process.exit(1);
   });
 
 mongoose.connection.on('disconnected', () => 
-  logger.warn('MongoDB connection disconnected'));
+  logger.warn('⚠️ MongoDB connection lost'));
 
-// ======================== Middleware Configuration ========================
-// Security Headers
+// ======================== Security Middleware ========================
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https://*.example.com"]
-    }
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "https://*.amazonaws.com"],
+    },
   },
-  hsts: {
-    maxAge: 63072000,
-    includeSubDomains: true,
-    preload: true
-  }
+  crossOriginEmbedderPolicy: false,
 }));
 
-// Request Logging
-app.use(require('morgan')('combined', { stream: morganStream }));
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  maxAge: 600,
+  preflightContinue: false,
+}));
 
-// Rate Limiting
+// ======================== Rate Limiting ========================
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 300,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === 'test',
+  handler: (req, res) => {
+    logger.warn(`Rate limit exceeded: ${req.ip}`);
+    res.status(429).json({
+      code: 'RATE_LIMITED',
+      message: 'Too many requests, please try again later'
+    });
+  }
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: 'Too many login attempts, please try again later'
+  max: 25,
+  skip: (req) => req.method === 'OPTIONS',
+  keyGenerator: (req) => req.ip + req.body?.email,
 });
 
-// CORS Configuration
-const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS 
-    ? process.env.ALLOWED_ORIGINS.split(",") 
-    : ["http://localhost:3000", "http://localhost:5173"],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true,
-  maxAge: 86400
-};
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-
-// Body Parsing
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-
-// Data Sanitization
+// ======================== Application Middleware ========================
+app.use(express.json({ limit: '50kb' }));
+app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 app.use(mongoSanitize());
+app.use((req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Powered-By', 'Buddi Chat');
+  next();
+});
 
 // ======================== Route Configuration ========================
-// Public Routes
-app.use("/api/auth", authLimiter, authRoutes);
+// Public routes
+app.use('/api/auth', authLimiter, authRoutes);
 
-// Protected Routes
-app.use("/api/users", apiLimiter, authenticate, userRoutes);
-app.use("/api/chat", apiLimiter, authenticate, chatRoutes);
-app.use("/api/protected", apiLimiter, authenticate, protectedRoutes);
+// Authenticated routes
+app.use('/api/users', apiLimiter, authenticate, userRoutes);
+app.use('/api/chat', apiLimiter, authenticate, chatRoutes);  // Updated route mounting
 
 // ======================== Error Handling ========================
 app.use(joiErrorHandler);
 app.use((err, req, res, next) => {
-  logger.error(`⚠️ Error: ${err.message}`, {
+  const statusCode = err.statusCode || 500;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  logger.error(`❗ ${statusCode} Error: ${err.message}`, {
     path: req.path,
     method: req.method,
-    stack: err.stack
+    stack: isProduction ? undefined : err.stack
   });
 
-  const statusCode = err.statusCode || 500;
-  const message = statusCode === 500 ? 'Internal Server Error' : err.message;
-  
   res.status(statusCode).json({
     success: false,
-    code: err.code || 'SERVER_ERROR',
-    message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    code: err.code || 'INTERNAL_ERROR',
+    message: isProduction && statusCode === 500 
+      ? 'Internal server error' 
+      : err.message,
+    ...(!isProduction && { stack: err.stack })
   });
 });
 
-app.use((req, res) => {
-  res.status(404).json({ 
+app.use('*', (req, res) => {
+  res.status(404).json({
     success: false,
     code: 'NOT_FOUND',
-    message: 'Resource not found' 
+    message: 'Resource not found'
   });
 });
 
 // ======================== Server Initialization ========================
-const server = http.createServer(app);
 const PORT = process.env.PORT || 5001;
+const server = http.createServer(app);
 
-const shutdown = (signal) => {
-  logger.info(`Received ${signal}, shutting down gracefully...`);
-  server.close(async () => {
+const shutdown = async (signal) => {
+  logger.info(`🛑 Received ${signal}, shutting down gracefully...`);
+  try {
     await mongoose.connection.close();
-    logger.info('🛑 Server and database connections closed');
-    process.exit(0);
-  });
+    server.close(() => {
+      logger.info('⏏️ Server and database connections closed');
+      process.exit(0);
+    });
+  } catch (err) {
+    logger.error('❌ Shutdown error:', err);
+    process.exit(1);
+  }
 };
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
-process.on('unhandledRejection', (err) => {
-  logger.error('🔥 Unhandled Promise Rejection:', err);
+process.on('uncaughtException', shutdown);
+process.on('unhandledRejection', (reason) => {
+  logger.error('💥 Unhandled Rejection:', reason);
   shutdown('unhandledRejection');
 });
 
 server.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
-  if (process.env.NODE_ENV === 'development') {
-    logger.debug('Development mode enabled');
-  }
+  logger.debug(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.debug(`Allowed origins: ${process.env.ALLOWED_ORIGINS}`);
 });

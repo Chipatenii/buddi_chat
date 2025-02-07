@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { ThemeContext } from './context/ThemeContext';
+import ThemeContext from './context/ThemeContext';
 import useAuth from './hooks/useAuth';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import RouteErrorBoundary from './components/RouteErrorBoundary';

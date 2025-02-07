@@ -17,3 +17,4 @@ const SessionTimeoutModal = ({ remaining, onStay }) => {
     </div>
   );
 };
+export default SessionTimeoutModal;

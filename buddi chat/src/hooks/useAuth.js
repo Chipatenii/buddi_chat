@@ -1,7 +1,7 @@
 import { useEffect, useReducer } from 'react';
-import { fetchLoggedInUser } from '../services/apiService';
-import { logger } from '../utils/logger';
-import { webSocketService } from '../services/webSocketService';
+import fetchLoggedInUser from '../services/apiService';
+import logger from '../utils/logger';
+import {webSocketService} from '../services/webSocketService';
 
 const authReducer = (state, action) => {
   switch (action.type) {

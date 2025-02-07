@@ -3,3 +3,4 @@ const OfflineBanner = () => (
       ⚠️ You are currently offline. Some features may be unavailable.
     </div>
   );
+  export default OfflineBanner;

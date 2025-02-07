@@ -1,5 +1,5 @@
-`import logger from '../utils/logger';`.
-import { fetchLoggedInUser } from './apiService';
+import logger from '../utils/logger';
+import fetchLoggedInUser from './apiService';
 
 const WS_CONFIG = {
   RECONNECT_BASE_DELAY: 1000,
