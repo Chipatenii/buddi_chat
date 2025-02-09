@@ -76,3 +76,4 @@ module.exports = {
   logger,
   morganStream 
 };
+export default logger;

@@ -1,9 +1,9 @@
 import express from 'express';
 import Joi from 'joi';
-import { logger } from '../utils/logger.js';
+import logger from '../utils/logger.js';
 import ChatRoom from '../models/ChatRoom.js';
 import User from '../models/User.js';
-import { authenticate } from '../middleware/authMiddleware.js';
+import authenticate from '../middleware/authMiddleware.js';
 import { validateRequest, validateParams, validateQuery } from '../middleware/validation.js';
 
 const router = express.Router();

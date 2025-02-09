@@ -163,4 +163,4 @@ chatRoomSchema.methods.markAsRead = function(userId) {
   return this.save();
 };
 
-module.exports = mongoose.model("ChatRoom", chatRoomSchema);
+export default mongoose.model("ChatRoom", chatRoomSchema);
