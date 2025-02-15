@@ -6,7 +6,6 @@ import Joi from 'joi';
 import rateLimit from 'express-rate-limit';
 import User from '../models/User.js';
 import { v4 as uuidv4 } from 'uuid';
-import dotenv from 'dotenv';
 
 const router = express.Router();
 
