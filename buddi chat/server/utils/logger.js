@@ -1,7 +1,8 @@
-const { createLogger, format, transports } = require('winston');
+import { createLogger, format, transports } from 'winston';
+import path from 'path';
+import fs from 'fs';
+
 const { combine, timestamp, printf, colorize, errors, json } = format;
-const path = require('path');
-const fs = require('fs');
 
 // Create logs directory if it doesn't exist
 const logDir = 'logs';
@@ -11,8 +12,7 @@ if (!fs.existsSync(logDir)) {
 
 // Custom format for development
 const devFormat = printf(({ level, message, timestamp, stack }) => {
-  let msg = `${timestamp} [${level}]: ${stack || message}`;
-  return msg;
+  return `${timestamp} [${level}]: ${stack || message}`;
 });
 
 // Custom format for production
@@ -72,8 +72,4 @@ logger.on('error', (error) => {
   console.error('Logger Error:', error);
 });
 
-module.exports = { 
-  logger,
-  morganStream 
-};
-export default logger;
+export { logger, morganStream };

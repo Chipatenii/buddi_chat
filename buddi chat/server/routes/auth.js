@@ -1,12 +1,12 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const multer = require('multer');
-const Joi = require('joi');
-const rateLimit = require('express-rate-limit');
-const User = require('../models/User');
-const { v4: uuidv4 } = require('uuid');
-require('dotenv').config();
+import express from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import Joi from 'joi';
+import rateLimit from 'express-rate-limit';
+import User from '../models/User.js';
+import { v4 as uuidv4 } from 'uuid';
+import dotenv from 'dotenv';
 
 const router = express.Router();
 
@@ -232,4 +232,4 @@ router.get('/me', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default authRoutes = router;

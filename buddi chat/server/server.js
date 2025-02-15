@@ -10,7 +10,7 @@ import mongoSanitize from "express-mongo-sanitize";
 import { logger, morganStream } from "./utils/logger.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/userRoutes.js";
-import chatRoutes from "./routes/chatRoutes.js";  // Updated import
+import chatRoutes from "./routes/chatRoutes.js";
 import { joiErrorHandler } from "./middleware/validation.js";
 import authenticate from "./middleware/authMiddleware.js";
 
