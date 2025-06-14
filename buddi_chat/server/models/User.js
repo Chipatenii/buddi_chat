@@ -94,6 +94,12 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+// Add compound indexes for common queries
+userSchema.index({ email: 1, active: 1 });
+userSchema.index({ username: 1, active: 1 });
+userSchema.index({ role: 1, active: 1 });
+userSchema.index({ lastLogin: -1 });
+
 // Virtuals
 userSchema.virtual("avatarURL").get(function() {
   return this.profilePicture 
