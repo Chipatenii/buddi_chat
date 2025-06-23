@@ -57,13 +57,13 @@ The Buddi Chat Application is a web-based platform that allows users to join cha
    ```bash
    git clone <https://github.com/Chipatenii/buddi_chat>
    cd <buddi_chat>
-   ```bash
+   ```
 
 2. **Install Dependencies**:
 
    ```bash
    npm install
-   ```plaintext
+   ```
 
 3. **Set Up Environment Variables**:
    - Create a `.env` file in the project root.
