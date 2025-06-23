@@ -1,8 +1,9 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import ThemeContext from './context/ThemeContext';
 import useAuth from './hooks/useAuth';
 import useOnlineStatus from './hooks/useOnlineStatus';
+import useIdleTimer from './hooks/useIdleTimer';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 import PrivateRoute from './components/PrivateRoute';
 import Loader from './components/Loader';

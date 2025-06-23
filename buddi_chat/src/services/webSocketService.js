@@ -1,5 +1,6 @@
 import logger from '../utils/logger';
-import fetchLoggedInUser from './apiService';
+import { fetchLoggedInUser } from './apiService';
+import crypto from 'crypto';
 
 const WS_CONFIG = {
   RECONNECT_BASE_DELAY: 1000,

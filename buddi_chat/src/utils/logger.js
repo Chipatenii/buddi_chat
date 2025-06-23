@@ -15,6 +15,7 @@ const logger = {
   info: (...args) => log(logLevels.INFO, 'INFO', ...args),
   warn: (...args) => log(logLevels.WARN, 'WARN', ...args),
   error: (...args) => log(logLevels.ERROR, 'ERROR', ...args),
+  apiError: (...args) => log(logLevels.ERROR, 'API_ERROR', ...args),
 };
 
 function log(level, prefix, ...args) {

@@ -1,5 +1,5 @@
 import { useEffect, useReducer } from 'react';
-import fetchLoggedInUser from '../services/apiService';
+import { fetchLoggedInUser } from '../services/apiService';
 import logger from '../utils/logger';
 import {webSocketService} from '../services/webSocketService';
 
