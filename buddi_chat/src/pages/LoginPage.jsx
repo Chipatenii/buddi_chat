@@ -1,85 +1,96 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { LogIn, UserPlus } from 'lucide-react';
 import api from '../services/apiService';
+import { Button, Input } from '../components/ui';
 
 const LoginPage = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setError(''); // Clear previous errors
+        setError('');
+        setLoading(true);
     
         try {
-            console.log('Sending login request...');
-            const response = await api.post('/auth/login', { username, password });
-            
-            console.log('API Response:', response.data);
-            
-            localStorage.setItem('authToken', response.data.token);
-            alert('Login successful!');
-            
-            console.log('Navigating to homepage...');
-            navigate('/'); // Redirect to homepage after success
+            await api.post('/auth/login', { username, password });
+            navigate('/'); 
         } catch (err) {
             console.error('Login error:', err.response?.data || err);
-            setError(err.response?.data?.message || 'Something went wrong');
+            setError(err.response?.data?.message || 'Invalid credentials');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleSignUp = () => {
-        navigate('/register'); // Redirect to register page
-    };
-
     return (
-        <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
-            <form
-                onSubmit={handleLogin}
-                className="bg-white p-4 rounded shadow-sm w-100 max-w-sm"
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-center min-vh-100 px-4 bg-dark"
+        >
+            <motion.div 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="glass-card p-5 w-100" 
+                style={{ maxWidth: '450px' }}
             >
-                <h1 className="h4 mb-4">Login</h1>
-                {error && <p className="text-danger mb-4">{error}</p>}
-                <div className="mb-3">
-                    <label htmlFor="username" className="form-label">
-                        Username
-                    </label>
-                    <input
-                        id="username"
-                        type="text"
-                        className="form-control"
+                <div className="text-center mb-5">
+                    <div className="p-3 rounded-circle bg-primary bg-opacity-10 d-inline-flex mb-3">
+                        <LogIn size={40} className="text-primary" />
+                    </div>
+                    <h2 className="fw-bold">Welcome Back</h2>
+                    <p className="text-muted small">Enter your credentials to access your chat</p>
+                </div>
+
+                <form onSubmit={handleLogin}>
+                    {error && (
+                        <div className="alert alert-danger py-2 small border-0 bg-danger bg-opacity-10 text-danger mb-4">
+                            {error}
+                        </div>
+                    )}
+                    
+                    <Input
+                        label="Username"
+                        placeholder="john_doe"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
+                        required
                     />
-                </div>
-                <div className="mb-3">
-                    <label htmlFor="password" className="form-label">
-                        Password
-                    </label>
-                    <input
-                        id="password"
+
+                    <Input
+                        label="Password"
                         type="password"
-                        className="form-control"
+                        placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        required
                     />
-                </div>
-                <button
-                    type="submit"
-                    className="btn btn-primary w-100 mb-2"
-                >
-                    Login
-                </button>
-                <button
-                    type="button"
-                    className="btn btn-secondary w-100"
-                    onClick={handleSignUp}
-                >
-                    Sign Up
-                </button>
-            </form>
-        </div>
+
+                    <Button
+                        type="submit"
+                        loading={loading}
+                        className="w-100 py-3 mb-3"
+                    >
+                        Login
+                    </Button>
+
+                    <div className="text-center mt-4">
+                        <span className="text-muted small">Don't have an account? </span>
+                        <Link to="/register" className="text-primary small text-decoration-none fw-semibold d-inline-flex align-items-center gap-1">
+                            <UserPlus size={14} />
+                            Create Account
+                        </Link>
+                    </div>
+                </form>
+            </motion.div>
+        </motion.div>
     );
 };
 

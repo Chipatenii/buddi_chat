@@ -1,18 +1,19 @@
 import PropTypes from 'prop-types';
-import { THEME } from '../../constants';
 
 const Card = ({ children, header, footer, className = '' }) => {
   return (
-    <div 
-      className={`card ${className}`}
-      style={{
-        borderRadius: THEME.SPACING.MD,
-        padding: THEME.SPACING.MD
-      }}
-    >
-      {header && <div className="card-header">{header}</div>}
-      <div className="card-body">{children}</div>
-      {footer && <div className="card-footer">{footer}</div>}
+    <div className={`glass-card overflow-hidden ${className}`}>
+      {header && (
+        <div className="px-4 py-3 border-bottom border-secondary" style={{ borderOpacity: 0.1 }}>
+          {header}
+        </div>
+      )}
+      <div className="p-4">{children}</div>
+      {footer && (
+        <div className="px-4 py-3 border-top border-secondary" style={{ borderOpacity: 0.1 }}>
+          {footer}
+        </div>
+      )}
     </div>
   );
 };

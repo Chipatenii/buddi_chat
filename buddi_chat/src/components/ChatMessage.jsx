@@ -1,73 +1,42 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo } from 'react';
 import PropTypes from 'prop-types';
-import { Avatar, MessageStatus } from '../components/ui';
+import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { useTheme } from '../context/ThemeContext';
-import './ChatMessage.css';
 
-const ChatMessage = memo(({ message, isCurrentUser }) => {
-  const { theme } = useTheme();
-  
-  const isOwnMessage = useMemo(() => 
-    message.user._id === isCurrentUser._id,
-    [message.user._id, isCurrentUser._id]
-  );
-
-  const formattedTime = useMemo(() => 
-    format(new Date(message.timestamp), 'HH:mm'),
-    [message.timestamp]
-  );
-
-  const messageClass = useMemo(() => 
-    `message ${isOwnMessage ? 'outgoing' : 'incoming'}`,
-    [isOwnMessage]
-  );
+const ChatMessage = memo(({ message, isSent }) => {
+  const formattedTime = format(new Date(message.timestamp), 'HH:mm');
 
   return (
-    <div className={messageClass}>
-      <div className="message-header">
-        {!isOwnMessage && (
-          <Avatar 
-            src={message.user.profilePicture}
-            name={message.user.name}
-            size="sm"
-          />
-        )}
-        <div className="message-meta">
-          <span className="message-sender">
-            {!isOwnMessage && message.user.name}
-          </span>
-          <time className="message-time">
-            {formattedTime}
-          </time>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className={`d-flex flex-column ${isSent ? 'align-items-end' : 'align-items-start'} mb-3`}
+    >
+      {!isSent && (
+        <span className="small text-muted mb-1 px-2" style={{ fontSize: '0.75rem' }}>
+          {message.user?.username || 'User'}
+        </span>
+      )}
+      <div className={`message-bubble ${isSent ? 'message-sent' : 'message-received'} shadow-sm`}>
+        <p className="mb-0">{message.content}</p>
       </div>
-      
-      <div className="message-body">
-        <p>{message.content}</p>
-        {isOwnMessage && (
-          <MessageStatus status={message.status} />
-        )}
-      </div>
-    </div>
+      <span className="small text-muted mt-1 px-2" style={{ fontSize: '0.65rem' }}>
+        {formattedTime}
+      </span>
+    </motion.div>
   );
 });
 
 ChatMessage.propTypes = {
   message: PropTypes.shape({
-    id: PropTypes.string,
     content: PropTypes.string.isRequired,
-    timestamp: PropTypes.string.isRequired,
-    status: PropTypes.oneOf(['sent', 'sending', 'failed']),
+    timestamp: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]).isRequired,
     user: PropTypes.shape({
-      id: PropTypes.string.isRequired,
-      name: PropTypes.string.isRequired,
-      profilePicture: PropTypes.string
-    }).isRequired
+      username: PropTypes.string
+    })
   }).isRequired,
-  isCurrentUser: PropTypes.shape({
-    _id: PropTypes.string.isRequired
-  }).isRequired
+  isSent: PropTypes.bool.isRequired
 };
 
 ChatMessage.displayName = 'ChatMessage';

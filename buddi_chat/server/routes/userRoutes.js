@@ -1,10 +1,10 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const Joi = require('joi');
-const rateLimit = require('express-rate-limit');
-const { validateRequest } = require('../middleware/validation');
+import express from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+import Joi from 'joi';
+import rateLimit from 'express-rate-limit';
+import { validateRequest } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -26,22 +26,22 @@ const userSchema = Joi.object({
 // Enhanced authentication middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       code: 'MISSING_TOKEN',
-      message: 'Authorization header with Bearer token required' 
+      message: 'Authorization header with Bearer token required'
     });
   }
 
   const token = authHeader.split(' ')[1];
-  
+
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
       return res.status(403).json({
         code: 'INVALID_TOKEN',
-        message: err.name === 'TokenExpiredError' 
-          ? 'Token expired' 
+        message: err.name === 'TokenExpiredError'
+          ? 'Token expired'
           : 'Invalid authentication token'
       });
     }
@@ -71,7 +71,7 @@ router.post('/', createAccountLimiter, validateRequest(userSchema), async (req, 
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
-    
+
     // Create user
     const user = new User({
       username,

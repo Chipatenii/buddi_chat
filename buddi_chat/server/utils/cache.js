@@ -1,23 +1,26 @@
 import { createClient } from 'redis';
 import { logger } from './logger.js';
 
+// Create main client
 const redisClient = createClient({
   url: process.env.REDIS_URL || 'redis://localhost:6379',
-  socket: {
-    reconnectStrategy: (retries) => {
-      if (retries > 10) {
-        logger.error('Redis max retries reached');
-        return new Error('Redis max retries reached');
-      }
-      return Math.min(retries * 100, 3000);
-    }
-  }
 });
 
-redisClient.on('error', (err) => logger.error('Redis Client Error:', err));
-redisClient.on('connect', () => logger.info('Redis Client Connected'));
+// Create separate subscriber client
+export const subClient = redisClient.duplicate();
 
-await redisClient.connect();
+redisClient.on('error', (err) => logger.error('Redis Client Error:', err));
+subClient.on('error', (err) => logger.error('Redis Sub Client Error:', err));
+
+try {
+  await Promise.all([
+    redisClient.connect(),
+    subClient.connect()
+  ]);
+  logger.info('✅ Redis connected successfully');
+} catch (error) {
+  logger.error('❌ Redis connection failed. Caching and Pub/Sub will be disabled:', error.message);
+}
 
 // Cache middleware
 export const cacheMiddleware = (duration = 300) => async (req, res, next) => {
@@ -26,7 +29,7 @@ export const cacheMiddleware = (duration = 300) => async (req, res, next) => {
   }
 
   const key = `cache:${req.originalUrl}`;
-  
+
   try {
     const cachedResponse = await redisClient.get(key);
     if (cachedResponse) {
@@ -35,7 +38,7 @@ export const cacheMiddleware = (duration = 300) => async (req, res, next) => {
 
     // Store original res.json
     const originalJson = res.json;
-    res.json = function(data) {
+    res.json = function (data) {
       redisClient.setEx(key, duration, JSON.stringify(data))
         .catch(err => logger.error('Cache set error:', err));
       return originalJson.call(this, data);

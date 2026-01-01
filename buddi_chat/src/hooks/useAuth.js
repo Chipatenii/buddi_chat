@@ -1,7 +1,7 @@
 import { useEffect, useReducer } from 'react';
 import { fetchLoggedInUser } from '../services/apiService';
 import logger from '../utils/logger';
-import {webSocketService} from '../services/webSocketService';
+import { webSocketService } from '../services/webSocketService';
 
 const authReducer = (state, action) => {
   switch (action.type) {
@@ -28,7 +28,7 @@ const useAuth = () => {
 
   useEffect(() => {
     const controller = new AbortController();
-    
+
     const checkAuth = async () => {
       try {
         const userData = await fetchLoggedInUser({ signal: controller.signal });
@@ -46,8 +46,12 @@ const useAuth = () => {
     return () => controller.abort();
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      logger.error('Logout failed:', err);
+    }
     dispatch({ type: 'LOGOUT' });
   };
 

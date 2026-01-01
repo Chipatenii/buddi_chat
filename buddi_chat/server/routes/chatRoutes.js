@@ -2,8 +2,9 @@ import express from 'express';
 import Joi from 'joi';
 import { logger } from '../utils/logger.js';
 import ChatRoom from '../models/ChatRoom.js';
-import User from '../models/User.js';
-import authenticate from '../middleware/authMiddleware.js';
+import { joiErrorHandler } from "../middleware/validation.js";
+import authenticate from "../middleware/authMiddleware.js";
+import { summarizeMessages } from "../utils/aiService.js";
 import { validateRequest, validateParams, validateQuery } from '../middleware/validation.js';
 
 const router = express.Router();
@@ -30,84 +31,118 @@ const messageSchema = Joi.object({
 
 // Get user's chat rooms with pagination
 router.get('/', authenticate, validateQuery(Joi.object({
-    page: Joi.number().min(1).default(1),
-    limit: Joi.number().min(1).max(100).default(20)
-  })), async (req, res) => {
-    try {
-      const { id: userId } = req.user;
-      const { page, limit } = req.query;
+  page: Joi.number().min(1).default(1),
+  limit: Joi.number().min(1).max(100).default(20)
+})), async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+    const { page, limit } = req.query;
 
-      const chatRooms = await ChatRoom.find({ users: userId })
-        .populate('users', 'username profilePicture')
-        .populate('lastMessage')
-        .sort('-lastMessage')
-        .skip((page - 1) * limit)
-        .limit(limit);
+    const chatRooms = await ChatRoom.find({ users: userId })
+      .populate('users', 'username profilePicture')
+      .populate('lastMessage')
+      .sort('-lastMessage')
+      .skip((page - 1) * limit)
+      .limit(limit);
 
-      logger.info(`Fetched ${chatRooms.length} chat rooms for user ${userId}`);
-      res.json(chatRooms);
-    } catch (error) {
-      logger.error(`Chat room fetch error: ${error.stack}`);
-      res.status(500).json({ code: 'SERVER_ERROR', message: 'Failed to fetch chat rooms' });
-    }
+    logger.info(`Fetched ${chatRooms.length} chat rooms for user ${userId}`);
+    res.json(chatRooms);
+  } catch (error) {
+    logger.error(`Chat room fetch error: ${error.stack}`);
+    res.status(500).json({ code: 'SERVER_ERROR', message: 'Failed to fetch chat rooms' });
   }
+}
 );
 
 // Create new chat room
 router.post('/', authenticate, validateRequest(chatRoomSchema), async (req, res) => {
-    try {
-      const { id: userId } = req.user;
-      const { name, type, users, privacy } = req.body;
+  try {
+    const { id: userId } = req.user;
+    const { name, type, users, privacy } = req.body;
 
-      if (type === 'direct' && users.length !== 1) {
-        logger.warn(`Invalid direct chat attempt by user ${userId}`);
-        return res.status(400).json({ code: 'INVALID_DIRECT_CHAT', message: 'Direct chat requires exactly one other user' });
-      }
-
-      const existingUsers = await User.find({ _id: { $in: users } });
-      if (existingUsers.length !== users.length) {
-        logger.warn(`User ${userId} attempted to create chat with non-existent users`);
-        return res.status(404).json({ code: 'USER_NOT_FOUND', message: 'One or more users do not exist' });
-      }
-
-      const newChatRoom = await ChatRoom.create({
-        name,
-        type,
-        users: [...users, userId],
-        privacy: privacy || 'private',
-        createdBy: userId
-      });
-
-      logger.info(`Created new ${type} chat room: ${newChatRoom.id} by user ${userId}`);
-      res.status(201).json(newChatRoom);
-    } catch (error) {
-      logger.error(`Chat room creation error: ${error.stack}`);
-      res.status(500).json({ code: 'SERVER_ERROR', message: 'Failed to create chat room' });
+    if (type === 'direct' && users.length !== 1) {
+      logger.warn(`Invalid direct chat attempt by user ${userId}`);
+      return res.status(400).json({ code: 'INVALID_DIRECT_CHAT', message: 'Direct chat requires exactly one other user' });
     }
+
+    const existingUsers = await User.find({ _id: { $in: users } });
+    if (existingUsers.length !== users.length) {
+      logger.warn(`User ${userId} attempted to create chat with non-existent users`);
+      return res.status(404).json({ code: 'USER_NOT_FOUND', message: 'One or more users do not exist' });
+    }
+
+    const newChatRoom = await ChatRoom.create({
+      name,
+      type,
+      users: [...users, userId],
+      privacy: privacy || 'private',
+      createdBy: userId
+    });
+
+    logger.info(`Created new ${type} chat room: ${newChatRoom.id} by user ${userId}`);
+    res.status(201).json(newChatRoom);
+  } catch (error) {
+    logger.error(`Chat room creation error: ${error.stack}`);
+    res.status(500).json({ code: 'SERVER_ERROR', message: 'Failed to create chat room' });
   }
+}
 );
 
 // Get chat room messages
 router.get('/:id/messages', authenticate, validateParams(Joi.object({ id: Joi.string().hex().length(24).required() })), validateQuery(Joi.object({
-    before: Joi.date().iso(),
-    limit: Joi.number().min(1).max(100).default(50)
-  })), async (req, res) => {
-    try {
-      const { id: chatRoomId } = req.params;
-      const chatRoom = await ChatRoom.findById(chatRoomId).populate('messages.sender', 'username profilePicture').select('messages');
+  before: Joi.date().iso(),
+  limit: Joi.number().min(1).max(100).default(50)
+})), async (req, res) => {
+  try {
+    const { id: chatRoomId } = req.params;
+    const { id: userId } = req.user;
 
-      if (!chatRoom) {
-        logger.warn(`Chat room ${chatRoomId} not found`);
-        return res.status(404).json({ code: 'CHAT_ROOM_NOT_FOUND', message: 'Chat room does not exist' });
-      }
+    const chatRoom = await ChatRoom.findOne({
+      _id: chatRoomId,
+      users: userId
+    }).populate('messages.sender', 'username profilePicture').select('messages');
 
-      logger.info(`Fetched messages for chat room ${chatRoomId}`);
-      res.json(chatRoom.messages);
-    } catch (error) {
-      logger.error(`Message fetch error: ${error.stack}`);
-      res.status(500).json({ code: 'SERVER_ERROR', message: 'Failed to fetch messages' });
+    if (!chatRoom) {
+      logger.warn(`Unauthorized or non-existent chat room access attempt: Room ${chatRoomId} by User ${userId}`);
+      return res.status(403).json({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to view this chat room'
+      });
     }
+
+    logger.info(`Fetched messages for chat room ${chatRoomId}`);
+    res.json(chatRoom.messages);
+  } catch (error) {
+    logger.error(`Message fetch error: ${error.stack}`);
+    res.status(500).json({ code: 'SERVER_ERROR', message: 'Failed to fetch messages' });
   }
+}
 );
+
+// Summarize chat room messages
+router.get('/:id/summarize', authenticate, validateParams(Joi.object({ id: Joi.string().hex().length(24).required() })), async (req, res) => {
+  try {
+    const { id: chatRoomId } = req.params;
+    const userId = req.user.id;
+
+    // Verify membership
+    const chatRoom = await ChatRoom.findOne({ _id: chatRoomId, users: userId })
+      .populate('messages.sender', 'username')
+      .select('messages');
+
+    if (!chatRoom) {
+      return res.status(403).json({ code: 'FORBIDDEN', message: 'Not a member of this chat room' });
+    }
+
+    // Only summarize last 50 messages for context
+    const recentMessages = chatRoom.messages.slice(-50);
+    const summary = await summarizeMessages(recentMessages);
+
+    res.json({ summary });
+  } catch (error) {
+    logger.error(`AI Summary Error: ${error.stack}`);
+    res.status(500).json({ code: 'SERVER_ERROR', message: 'Failed to generate chat summary' });
+  }
+});
 
 export default router;

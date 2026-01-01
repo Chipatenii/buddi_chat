@@ -55,6 +55,13 @@ const loginSchema = Joi.object({
 });
 
 // Utility functions
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'Strict',
+  maxAge: 3600000, // 1 hour
+};
+
 const generateToken = (user) => {
   return jwt.sign(
     {
@@ -82,9 +89,9 @@ router.post('/register', authLimiter, upload.single('profilePicture'), async (re
   try {
     // Validate input
     const { error } = userSchema.validate(req.body);
-    if (error) return res.status(422).json({ 
-      code: 'VALIDATION_ERROR', 
-      message: error.details[0].message 
+    if (error) return res.status(422).json({
+      code: 'VALIDATION_ERROR',
+      message: error.details[0].message
     });
 
     if (!req.file) return res.status(422).json({
@@ -120,9 +127,11 @@ router.post('/register', authLimiter, upload.single('profilePicture'), async (re
     // Generate token
     const token = generateToken(newUser);
 
+    // Set cookie
+    res.cookie('token', token, COOKIE_OPTIONS);
+
     return res.status(201).json({
       success: true,
-      token,
       user: sanitizeUser(newUser)
     });
 
@@ -146,8 +155,8 @@ router.post('/login', authLimiter, async (req, res) => {
     });
 
     // Find user with security considerations
-    const user = await User.findOne({ 
-      username: req.body.username 
+    const user = await User.findOne({
+      username: req.body.username
     }).select('+password +loginAttempts +lockedUntil');
 
     if (!user || user.lockedUntil > Date.now()) {
@@ -180,9 +189,11 @@ router.post('/login', authLimiter, async (req, res) => {
     // Generate token
     const token = generateToken(user);
 
+    // Set cookie
+    res.cookie('token', token, COOKIE_OPTIONS);
+
     return res.json({
       success: true,
-      token,
       user: sanitizeUser(user)
     });
 
@@ -193,6 +204,12 @@ router.post('/login', authLimiter, async (req, res) => {
       message: 'Could not process login'
     });
   }
+});
+
+// Logout endpoint
+router.post('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // User info endpoint
@@ -206,7 +223,7 @@ router.get('/me', async (req, res) => {
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
-    
+
     const user = await User.findById(decoded.userId);
     if (!user) return res.status(404).json({
       code: 'USER_NOT_FOUND',
@@ -220,9 +237,9 @@ router.get('/me', async (req, res) => {
 
   } catch (error) {
     console.error('User Info Error:', error);
-    
+
     const code = error.name === 'TokenExpiredError' ? 'TOKEN_EXPIRED' :
-                error.name === 'JsonWebTokenError' ? 'INVALID_TOKEN' : 'SERVER_ERROR';
+      error.name === 'JsonWebTokenError' ? 'INVALID_TOKEN' : 'SERVER_ERROR';
 
     return res.status(401).json({
       code,
@@ -231,5 +248,5 @@ router.get('/me', async (req, res) => {
   }
 });
 
-export default authRoutes = router;
+export default router;
 

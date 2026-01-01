@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import express from "express";
 import http from "http";
 import mongoose from "mongoose";
@@ -6,6 +6,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
+import cookieParser from "cookie-parser";
 import compression from 'compression';
 import { logger } from "./utils/logger.js";
 import { cacheMiddleware } from "./utils/cache.js";
@@ -15,6 +16,7 @@ import userRoutes from "./routes/userRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import { joiErrorHandler } from "./middleware/validation.js";
 import authenticate from "./middleware/authMiddleware.js";
+import { csrfProtection, generateCsrfToken } from "./middleware/csrfMiddleware.js";
 
 // Initialize Express app
 const app = express();
@@ -45,7 +47,7 @@ mongoose.connect(process.env.MONGO_URI, mongooseConfig)
     process.exit(1);
   });
 
-mongoose.connection.on('disconnected', () => 
+mongoose.connection.on('disconnected', () =>
   logger.warn('⚠️ MongoDB connection lost'));
 
 // ======================== Security Middleware ========================
@@ -74,7 +76,7 @@ app.use(cors({
 // ======================== Rate Limiting ========================
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 100, // Reduced from 300 to 100
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => process.env.NODE_ENV === 'test',
@@ -97,6 +99,7 @@ const authLimiter = rateLimit({
 // ======================== Application Middleware ========================
 app.use(express.json({ limit: '50kb' }));
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
+app.use(cookieParser());
 app.use(mongoSanitize());
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
@@ -115,7 +118,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// ======================== Route Configuration ========================
+// CSRF endpoint
+app.get('/api/csrf', generateCsrfToken);
+
+// Apply CSRF protection to mutating routes
+app.use(csrfProtection);
+
 // Public routes with caching
 app.use('/api/auth', authLimiter, authRoutes);
 
@@ -128,7 +136,7 @@ app.use(joiErrorHandler);
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   logger.error(`❗ ${statusCode} Error: ${err.message}`, {
     path: req.path,
     method: req.method,
@@ -138,8 +146,8 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({
     success: false,
     code: err.code || 'INTERNAL_ERROR',
-    message: isProduction && statusCode === 500 
-      ? 'Internal server error' 
+    message: isProduction && statusCode === 500
+      ? 'Internal server error'
       : err.message,
     ...(!isProduction && { stack: err.stack })
   });

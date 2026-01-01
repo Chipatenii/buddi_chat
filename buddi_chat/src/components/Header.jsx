@@ -2,18 +2,20 @@ import { Link, useNavigate } from 'react-router-dom';
 // Import Font Awesome icons
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faComments, faUser, faCog, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import useAuth from '../hooks/useAuth';
 
 const Header = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // Handle user logout
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
   return (
-    <header className="bg-primary text-white py-3 px-5">
+    <header className="header-desktop hide-mobile">
       <div className="container-fluid d-flex justify-content-between align-items-center">
         {/* Logo */}
         <Link to="/" className="d-flex align-items-center text-white text-decoration-none">

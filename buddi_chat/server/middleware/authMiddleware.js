@@ -9,25 +9,23 @@ const ERROR_MESSAGES = {
 };
 
 const authenticateToken = (req, res, next) => {
-  // Prefer lowercase header key for consistency
+  let token;
+
+  // Check Authorization header
   const authHeader = req.headers.authorization;
-  
-  // Validate Authorization header structure
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1]?.trim();
+  }
+  // Check Cookies
+  else if (req.cookies?.token) {
+    token = req.cookies.token;
+  }
+
+  if (!token) {
     return res.status(401).json({
       success: false,
       code: 'MISSING_CREDENTIALS',
       message: ERROR_MESSAGES.NO_TOKEN,
-    });
-  }
-
-  // Extract and validate token
-  const token = authHeader.split(' ')[1]?.trim();
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      code: 'MALFORMED_TOKEN',
-      message: ERROR_MESSAGES.INVALID_TOKEN,
     });
   }
 
@@ -116,4 +114,4 @@ const authenticateToken = (req, res, next) => {
 };
 
 
-export default authenticate;
+export default authenticateToken;

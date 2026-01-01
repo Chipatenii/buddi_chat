@@ -11,6 +11,8 @@ import OfflineBanner from './components/OfflineBanner';
 import SessionTimeoutModal from './components/SessionTimeoutModal';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import BottomNav from './components/BottomNav';
+import { AnimatePresence } from 'framer-motion';
 import logger from './utils/logger';
 import './index.css';
 
@@ -47,7 +49,8 @@ const AppContent = () => {
       
       <main className="main-content">
         <Suspense fallback={<Loader />}>
-          <Routes>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
             <Route path="/" element={
               <RouteErrorBoundary>
                 <HomePage user={user} />
@@ -59,6 +62,12 @@ const AppContent = () => {
                 <LoginPage />
               </RouteErrorBoundary>
             } />
+
+            <Route path="/register" element={
+              <RouteErrorBoundary>
+                <RegisterPage />
+              </RouteErrorBoundary>
+            } />
             
             <Route element={<PrivateRoute user={user} />}>
               <Route path="/chat-room" element={
@@ -66,13 +75,25 @@ const AppContent = () => {
                   <ChatRoomPage />
                 </RouteErrorBoundary>
               } />
+              <Route path="/settings" element={
+                <RouteErrorBoundary>
+                  <SettingsPage />
+                </RouteErrorBoundary>
+              } />
+              <Route path="/profile/:userId" element={
+                <RouteErrorBoundary>
+                  <UserProfilePage />
+                </RouteErrorBoundary>
+              } />
             </Route>
             
-            {/* Add similar error boundaries to all routes */}
+            <Route path="*" element={<ErrorPage />} />
           </Routes>
+          </AnimatePresence>
         </Suspense>
       </main>
       
+      <BottomNav />
       <Footer />
     </div>
   );

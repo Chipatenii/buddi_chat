@@ -16,16 +16,33 @@ const api = axios.create({
   withCredentials: true, // For cookies if using them
 });
 
-// Request Interceptor
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+let csrfToken = null;
+
+export const fetchCsrfToken = async () => {
+  try {
+    const response = await api.get('/csrf');
+    csrfToken = response.data.csrfToken;
+    return csrfToken;
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
   }
-  
+};
+
+// Request Interceptor
+api.interceptors.request.use(async config => {
+  // Add CSRF token for mutating methods
+  if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
+    if (!csrfToken) {
+      await fetchCsrfToken();
+    }
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
+
   // Add request ID for error tracking
   config.headers['X-Request-Id'] = crypto.randomUUID();
-  
+
   return config;
 }, error => {
   console.error('Request Error:', error);
@@ -65,7 +82,6 @@ api.interceptors.response.use(response => {
 
     // Specific error handling
     if (status === 401) {
-      localStorage.removeItem('authToken');
       window.location.href = '/login?session_expired=true';
     }
   } else if (error.request) {

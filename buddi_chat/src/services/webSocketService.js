@@ -23,14 +23,12 @@ class WebSocketService {
     if (this.socket) this.disconnect();
 
     try {
-      const token = localStorage.getItem('authToken');
       const user = await fetchLoggedInUser();
       this.connectionId = crypto.randomUUID();
-      
+
       const wsURL = new URL(import.meta.env.VITE_WS_URL || 'ws://localhost:5001');
-      wsURL.searchParams.set('userId', user.id);
       wsURL.searchParams.set('connectionId', this.connectionId);
-      
+
       this.socket = new WebSocket(wsURL.toString());
       this.setupEventHandlers();
     } catch (error) {
@@ -70,12 +68,12 @@ class WebSocketService {
 
   validateMessage = (rawData) => {
     const message = JSON.parse(rawData);
-    
+
     // Basic message validation schema
     if (!message.type || !message.payload) {
       throw new Error('Invalid message format');
     }
-    
+
     return message;
   };
 
@@ -104,7 +102,6 @@ class WebSocketService {
   };
 
   handleSessionExpired = () => {
-    localStorage.removeItem('authToken');
     window.location.href = '/login?session_expired=true';
   };
 

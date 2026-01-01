@@ -1,36 +1,45 @@
 import PropTypes from 'prop-types';
-import { THEME } from '../../../constants';
+import { motion } from 'framer-motion';
 
 const Button = ({ 
   variant = 'primary',
   size = 'md',
   children,
   loading,
+  className = '',
   ...props 
 }) => {
-  const baseStyle = `btn btn-${variant} ${loading ? 'opacity-75 cursor-wait' : ''}`;
   const sizeStyle = {
-    sm: 'px-3 py-1 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg'
+    sm: 'px-3 py-1 text-sm rounded-lg',
+    md: 'px-4 py-2 text-base rounded-xl',
+    lg: 'px-6 py-3 text-lg rounded-2xl'
   }[size];
 
+  const variantClass = variant === 'primary' ? 'btn-premium' : `btn btn-${variant}`;
+
   return (
-    <button
-      className={`${baseStyle} ${sizeStyle}`}
-      style={{ backgroundColor: THEME.COLORS[variant.toUpperCase()] }}
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={`${variantClass} ${sizeStyle} ${loading ? 'opacity-70 cursor-wait' : ''} ${className}`}
       disabled={loading}
       {...props}
     >
-      {loading ? <span className="animate-pulse">Loading...</span> : children}
-    </button>
+      {loading ? (
+        <div className="d-flex align-items-center gap-2">
+          <div className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+          <span>Loading...</span>
+        </div>
+      ) : children}
+    </motion.button>
   );
 };
 
 Button.propTypes = {
-  variant: PropTypes.oneOf(['primary', 'secondary', 'danger', 'success', 'warning']),
+  variant: PropTypes.oneOf(['primary', 'secondary', 'danger', 'success', 'warning', 'link']),
   size: PropTypes.oneOf(['sm', 'md', 'lg']),
   loading: PropTypes.bool,
+  className: PropTypes.string,
   children: PropTypes.node.isRequired
 };
 
