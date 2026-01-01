@@ -76,7 +76,7 @@ const generateToken = (user) => {
 
 const sanitizeUser = (user) => ({
   id: user._id,
-  realName: user.realName,
+  name: user.name,
   username: user.username,
   email: user.email,
   role: user.role,
@@ -113,10 +113,11 @@ router.post('/register', authLimiter, upload.single('profilePicture'), async (re
     }
 
     // Create new user
-    const hashedPassword = await bcrypt.hash(req.body.password, 12);
     const newUser = new User({
-      ...req.body,
-      password: hashedPassword,
+      name: req.body.realName,
+      username: req.body.username,
+      email: req.body.email,
+      password: req.body.password,
       profilePicture: req.file.buffer,
       lastLogin: null,
       loginAttempts: 0,
@@ -215,13 +216,18 @@ router.post('/logout', (req, res) => {
 // User info endpoint
 router.get('/me', async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({
+    let token = null;
+    if (req.headers.authorization?.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies.token) {
+      token = req.cookies.token;
+    }
+
+    if (!token) return res.status(401).json({
       code: 'UNAUTHORIZED',
       message: 'Authentication required'
     });
 
-    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
 
     const user = await User.findById(decoded.userId);

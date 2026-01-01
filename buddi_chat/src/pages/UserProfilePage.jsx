@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { User, Mail, Calendar, Edit3, ArrowLeft } from 'lucide-react';
-import { Card, Loader, Button } from '../components/ui';
+import { Loader, PrimaryButton } from '../components/ui';
 import api from '../services/apiService';
 import useAuth from '../hooks/useAuth';
 
@@ -37,99 +35,119 @@ const UserProfile = () => {
   const isCurrentUser = currentUser?.id === userId;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="container py-5 px-4"
-    >
-      <Button 
-        variant="link" 
-        onClick={() => navigate(-1)} 
-        className="text-muted p-0 mb-4 d-flex align-items-center gap-2"
+    <div className="min-vh-100 bg-main overflow-auto">
+      {/* Cover Header */}
+      <div 
+        className="position-relative overflow-hidden" 
+        style={{ 
+            height: '240px', 
+            background: 'linear-gradient(135deg, var(--bg-secondary) 0%, var(--surface-mid) 100%)' 
+        }}
       >
-        <ArrowLeft size={18} />
-        Back
-      </Button>
+        <div className="position-absolute top-0 start-0 w-100 h-100 opacity-50 bg-mesh" />
+        <div className="position-absolute bottom-0 start-0 w-100 h-50 bg-gradient-to-t from-bg-main to-transparent" />
+        
+        <button 
+            onClick={() => navigate(-1)}
+            className="position-absolute top-0 start-0 m-4 p-2 rounded-circle border-0 bg-dark bg-opacity-40 text-white hover-bg transition-smooth flex-center z-1"
+        >
+            <ArrowLeft size={20} />
+        </button>
+      </div>
 
-      <div className="row justify-content-center">
-        <div className="col-lg-8 col-xl-7">
-          <Card className="p-0 border-0">
-            {/* Header / Avatar */}
-            <div className="position-relative" style={{ height: '160px', background: 'linear-gradient(135deg, var(--primary), var(--secondary))' }}>
-              <div className="position-absolute start-50 translate-middle-x" style={{ bottom: '-50px' }}>
-                <div className="bg-dark rounded-circle p-1">
-                  <div className="rounded-circle overflow-hidden border border-4 border-dark" style={{ width: 120, height: 120 }}>
-                    <img
-                      src={profile.profilePicture || 'https://via.placeholder.com/150'}
-                      alt={profile.username}
-                      className="w-100 h-100 object-fit-cover"
-                    />
-                  </div>
+      <div className="container px-4" style={{ marginTop: '-80px' }}>
+        <div className="row justify-content-center">
+            <div className="col-xl-9">
+                <div className="d-flex flex-column flex-md-row align-items-center align-items-md-end gap-4 mb-5 text-center text-md-start px-md-4">
+                    <div className="position-relative">
+                        <div className="rounded-circle p-1 bg-main shadow-premium">
+                             <img
+                                src={profile.profilePicture || 'https://via.placeholder.com/150'}
+                                alt={profile.username}
+                                className="rounded-circle border border-4 border-surface-low object-fit-cover"
+                                style={{ width: 160, height: 160 }}
+                            />
+                        </div>
+                        <div className="position-absolute bottom-0 end-0 bg-accent rounded-circle border border-4 border-main" style={{ width: 24, height: 24 }} />
+                    </div>
+                    
+                    <div className="flex-grow-1 pb-2">
+                        <h1 className="display-6 fw-bold m-0">{profile.username}</h1>
+                        <p className="text-secondary m-0">{profile.realName}</p>
+                        <div className="d-flex flex-wrap justify-content-center justify-content-md-start gap-4 mt-3">
+                            <div className="d-flex align-items-center gap-2">
+                                <Mail size={16} className="text-primary opacity-50" />
+                                <span className="small text-secondary">{profile.email}</span>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                                <Calendar size={16} className="text-primary opacity-50" />
+                                <span className="small text-secondary">Joined {new Date(profile.joinedDate || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {isCurrentUser && (
+                        <div className="pb-2">
+                            <PrimaryButton className="px-4 py-2 small" onClick={() => navigate('/settings')}>
+                                <Edit3 size={16} />
+                                Edit Profile
+                            </PrimaryButton>
+                        </div>
+                    )}
                 </div>
-              </div>
+
+                {/* Profile Tabs & Content */}
+                <div className="row g-4">
+                    <div className="col-lg-4">
+                         <div className="p-4 rounded-4 bg-surface-low border border-color shadow-premium">
+                            <h6 className="fw-bold mb-4 uppercase tracking-wider opacity-50" style={{ fontSize: '0.75rem' }}>About</h6>
+                            <p className="small text-secondary line-height-relaxed">
+                                {profile.bio || "No bio provided yet."}
+                            </p>
+                            
+                            <hr className="my-4 border-color opacity-10" />
+                            
+                            <h6 className="fw-bold mb-4 uppercase tracking-wider opacity-50" style={{ fontSize: '0.75rem' }}>Social Stats</h6>
+                            <div className="row g-3">
+                                <div className="col-6">
+                                    <div className="p-3 rounded-3 bg-dark bg-opacity-50 border border-color text-center">
+                                        <div className="fw-bold text-primary">2.4k</div>
+                                        <div className="text-secondary" style={{ fontSize: '0.6rem' }}>Messages</div>
+                                    </div>
+                                </div>
+                                <div className="col-6">
+                                    <div className="p-3 rounded-3 bg-dark bg-opacity-50 border border-color text-center">
+                                        <div className="fw-bold text-accent-cyan">15</div>
+                                        <div className="text-secondary" style={{ fontSize: '0.6rem' }}>Rooms</div>
+                                    </div>
+                                </div>
+                            </div>
+                         </div>
+                    </div>
+
+                    <div className="col-lg-8">
+                        <div className="rounded-4 bg-surface-low border border-color shadow-premium overflow-hidden">
+                            <div className="px-4 py-3 bg-dark bg-opacity-20 border-bottom border-color d-flex gap-4">
+                                <button className="border-0 bg-transparent text-primary fw-bold small border-bottom border-2 border-primary pb-2">Activity</button>
+                                <button className="border-0 bg-transparent text-secondary opacity-50 small pb-2 hover-text-white transition-smooth">Photos</button>
+                                <button className="border-0 bg-transparent text-secondary opacity-50 small pb-2 hover-text-white transition-smooth">Badges</button>
+                            </div>
+                            
+                            <div className="p-5 text-center opacity-50">
+                                <div className="mb-3 opacity-20">
+                                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}>
+                                        <Mail size={48} />
+                                    </motion.div>
+                                </div>
+                                <p className="small m-0">No recent public activity to show.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <div className="pt-5 mt-4 pb-4 px-4 text-center">
-              <h3 className="fw-bold m-0">{profile.username}</h3>
-              <p className="text-muted small mb-3">{profile.realName}</p>
-              
-              {profile.bio && (
-                <p className="px-lg-5 mb-4 text-muted small mx-auto" style={{ maxWidth: '400px' }}>
-                  {profile.bio}
-                </p>
-              )}
-
-              <div className="d-flex justify-content-center gap-3 mb-4">
-                <div className="p-3 bg-dark bg-opacity-25 rounded-4 border border-secondary border-opacity-10 min-w-100" style={{ minWidth: '120px' }}>
-                  <div className="fw-bold text-primary">242</div>
-                  <div className="small text-muted" style={{ fontSize: '0.65rem' }}>Messages</div>
-                </div>
-                <div className="p-3 bg-dark bg-opacity-25 rounded-4 border border-secondary border-opacity-10 min-w-100" style={{ minWidth: '120px' }}>
-                  <div className="fw-bold text-accent">12</div>
-                  <div className="small text-muted" style={{ fontSize: '0.65rem' }}>Rooms</div>
-                </div>
-              </div>
-
-              {isCurrentUser && (
-                <Button className="d-inline-flex align-items-center gap-2 px-4 shadow-lg mb-2">
-                  <Edit3 size={16} />
-                  Edit Profile
-                </Button>
-              )}
-            </div>
-
-            {/* Information Grid */}
-            <div className="p-4 bg-dark bg-opacity-50 mt-2">
-              <div className="row g-4 text-start">
-                <div className="col-sm-6">
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="p-2 bg-primary bg-opacity-10 rounded-3 text-primary">
-                      <Mail size={20} />
-                    </div>
-                    <div>
-                      <div className="small text-muted" style={{ fontSize: '0.7rem' }}>Email Address</div>
-                      <div className="small fw-semibold">{profile.email}</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-sm-6">
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="p-2 bg-accent bg-opacity-10 rounded-3 text-accent">
-                      <Calendar size={20} />
-                    </div>
-                    <div>
-                      <div className="small text-muted" style={{ fontSize: '0.7rem' }}>Joined Date</div>
-                      <div className="small fw-semibold">{new Date(profile.joinedDate || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

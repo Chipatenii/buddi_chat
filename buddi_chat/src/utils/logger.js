@@ -6,8 +6,8 @@ const logLevels = {
   ERROR: 3,
 };
 
-const currentLevel = process.env.NODE_ENV === 'development' 
-  ? logLevels.DEBUG 
+const currentLevel = import.meta.env.MODE === 'development'
+  ? logLevels.DEBUG
   : logLevels.ERROR;
 
 const logger = {
@@ -22,7 +22,7 @@ function log(level, prefix, ...args) {
   if (level >= currentLevel) {
     const timestamp = new Date().toISOString();
     const message = [`[${timestamp}] ${prefix}:`, ...args];
-    
+
     switch (level) {
       case logLevels.DEBUG:
         console.debug(...message);

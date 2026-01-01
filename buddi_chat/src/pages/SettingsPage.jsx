@@ -1,108 +1,143 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Moon, Sun, Shield, Save } from 'lucide-react';
-import { Button } from '../components/ui';
+import { Bell, Moon, Sun, Shield, User, Sparkles } from 'lucide-react';
+import { InputField, PrimaryButton } from '../components/ui';
+
 
 const SettingsPage = () => {
   const [notifications, setNotifications] = useState(true);
   const [theme, setTheme] = useState('dark');
+  const [saving, setSaving] = useState(false);
 
   const handleSaveSettings = () => {
-    alert('Settings updated!');
+    setSaving(true);
+    setTimeout(() => {
+        setSaving(false);
+        alert('Settings updated successfully!');
+    }, 1000);
   };
 
+  const sections = [
+    {
+      id: 'profile',
+      title: 'Profile Settings',
+      icon: <User size={20} className="text-primary" />,
+      description: 'Manage your public identity and personal information.',
+      content: (
+        <div className="d-flex flex-column gap-3">
+            <InputField label="Display Name" defaultValue="John Doe" />
+            <InputField label="Bio" defaultValue="AI enthusiast and developer." type="textarea" />
+        </div>
+      )
+    },
+    {
+      id: 'notifications',
+      title: 'Notifications',
+      icon: <Bell size={20} className="text-accent" />,
+      description: 'Configure how and when you receive alerts.',
+      content: (
+        <div className="d-flex justify-content-between align-items-center p-3 rounded-3 bg-dark bg-opacity-30 border border-color">
+            <div className="small">
+                <div className="fw-bold">Push Notifications</div>
+                <div className="text-secondary opacity-50">New messages and activity</div>
+            </div>
+            <div className="form-check form-switch">
+                <input 
+                    className="form-check-input cursor-pointer" 
+                    type="checkbox" 
+                    checked={notifications} 
+                    onChange={() => setNotifications(!notifications)} 
+                />
+            </div>
+        </div>
+      )
+    },
+    {
+      id: 'security',
+      title: 'Security',
+      icon: <Shield size={20} className="text-secondary" />,
+      description: 'Keep your account safe and secure.',
+      content: (
+        <div className="d-flex flex-column gap-3">
+            <div className="p-3 rounded-3 bg-dark bg-opacity-30 border border-color d-flex justify-content-between align-items-center">
+                <div className="small">
+                    <div className="fw-bold">Two-Factor Authentication</div>
+                    <div className="text-secondary opacity-50">Currently disabled</div>
+                </div>
+                <button className="btn btn-sm btn-outline-light border-color small px-3">Enable</button>
+            </div>
+            <div className="p-3 rounded-3 bg-dark bg-opacity-30 border border-color d-flex justify-content-between align-items-center">
+                <div className="small">
+                    <div className="fw-bold">Password</div>
+                    <div className="text-secondary opacity-50">Last changed 3 months ago</div>
+                </div>
+                <button className="btn btn-sm btn-outline-light border-color small px-3">Update</button>
+            </div>
+        </div>
+      )
+    }
+  ];
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="container mt-5 px-4"
-    >
-      <div className="mb-5">
-        <h2 className="fw-bold mb-2">Settings</h2>
-        <p className="text-muted small">Manage your preferences and account security</p>
-      </div>
-
-      <div className="row g-4">
-        <div className="col-lg-8">
-          <div className="glass-card overflow-hidden">
-            {/* Preferences Section */}
-            <div className="p-4 border-bottom border-secondary" style={{ borderOpacity: 0.1 }}>
-              <h5 className="mb-4 d-flex align-items-center gap-2">
-                <Bell size={20} className="text-primary" />
-                Preferences
-              </h5>
-              
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                  <div className="fw-semibold">Push Notifications</div>
-                  <div className="small text-muted">Receive alerts for new messages</div>
-                </div>
-                <div className="form-check form-switch cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="form-check-input cursor-pointer shadow-none"
-                    style={{ scale: '1.2' }}
-                    checked={notifications}
-                    onChange={() => setNotifications(!notifications)}
-                  />
-                </div>
-              </div>
-
-              <div className="d-flex justify-content-between align-items-center mb-0">
-                <div>
-                  <div className="fw-semibold">Color Theme</div>
-                  <div className="small text-muted">Switch between light and dark mode</div>
-                </div>
-                <div className="d-flex bg-dark bg-opacity-50 p-1 rounded-3">
-                  <button 
-                    onClick={() => setTheme('light')}
-                    className={`btn btn-sm border-0 rounded-2 py-1 px-3 ${theme === 'light' ? 'bg-secondary text-white' : 'text-muted'}`}
-                  >
-                    <Sun size={14} className="me-1" /> Light
-                  </button>
-                  <button 
-                    onClick={() => setTheme('dark')}
-                    className={`btn btn-sm border-0 rounded-2 py-1 px-3 ${theme === 'dark' ? 'bg-primary text-white' : 'text-muted'}`}
-                  >
-                    <Moon size={14} className="me-1" /> Dark
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Security Section */}
-            <div className="p-4">
-              <h5 className="mb-4 d-flex align-items-center gap-2">
-                <Shield size={20} className="text-accent" />
-                Security
-              </h5>
-              <div className="p-3 rounded-3 bg-dark bg-opacity-25 border border-secondary border-opacity-10 mb-4">
-                <div className="small fw-semibold mb-1">Two-Factor Authentication</div>
-                <div className="small text-muted mb-3">Add an extra layer of security to your account.</div>
-                <Button variant="secondary" size="sm">Enable 2FA</Button>
-              </div>
-            </div>
-          </div>
+    <div className="min-vh-100 bg-main p-4 p-md-5 overflow-auto">
+      <div className="container" style={{ maxWidth: '1000px' }}>
+        <div className="mb-5">
+            <h1 className="fw-bold display-6 mb-2">Account Settings</h1>
+            <p className="text-secondary small">Precision controls for your Buddi experience.</p>
         </div>
 
-        <div className="col-lg-4">
-          <div className="glass-card p-4 text-center">
-            <h5 className="mb-3">Quick Actions</h5>
-            <Button 
-              onClick={handleSaveSettings} 
-              className="w-100 py-3 d-flex align-items-center justify-content-center gap-2"
-            >
-              <Save size={18} />
-              Save Changes
-            </Button>
-            <p className="small text-muted mt-3 mb-0">
-              Last synced: Today at 2:45 PM
-            </p>
-          </div>
+        <div className="row g-5">
+            <div className="col-lg-8">
+                <div className="d-flex flex-column gap-5">
+                    {sections.map(section => (
+                        <div key={section.id} className="settings-section">
+                            <div className="d-flex align-items-center gap-3 mb-3">
+                                <div className="p-2 bg-surface-high rounded-3 border border-color shadow-sm">
+                                    {section.icon}
+                                </div>
+                                <h5 className="fw-bold m-0">{section.title}</h5>
+                            </div>
+                            <p className="small text-secondary mb-4 opacity-75">{section.description}</p>
+                            <div className="p-1">
+                                {section.content}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="col-lg-4">
+                <div className="position-sticky top-0 pt-2">
+                    <div className="p-4 rounded-4 bg-surface-low border border-color shadow-premium text-center">
+                        <div className="p-3 bg-primary bg-opacity-10 rounded-circle d-inline-flex mb-3">
+                            <Sparkles className="text-primary" size={24} />
+                        </div>
+                        <h6 className="fw-bold mb-2">Ready to save?</h6>
+                        <p className="small text-secondary mb-4">Ensure all changes are correct before proceeding.</p>
+                        
+                        <PrimaryButton 
+                            className="w-100 py-3 mb-2" 
+                            onClick={handleSaveSettings}
+                            loading={saving}
+                        >
+                            Save All Changes
+                        </PrimaryButton>
+                        
+                        <button className="btn btn-link text-secondary small text-decoration-none hover-text-white transition-smooth">
+                            Discard and Reset
+                        </button>
+                    </div>
+                    
+                    <div className="mt-4 p-4 rounded-4 bg-danger bg-opacity-5 border border-danger border-opacity-10">
+                        <h6 className="fw-bold text-danger mb-2 small">Danger Zone</h6>
+                        <p className="small text-secondary mb-3 opacity-75">Permanently delete your account and data.</p>
+                        <button className="btn btn-outline-danger btn-sm w-100">Delete Account</button>
+                    </div>
+                </div>
+            </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

@@ -1,11 +1,11 @@
-import WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger.js';
 import redisClient, { getCache, setCache, subClient } from '../utils/cache.js';
 
 class WebSocketManager {
   constructor(server) {
-    this.wss = new WebSocket.Server({ server });
+    this.wss = new WebSocketServer({ server });
     this.clients = new Map();
     this.messageQueue = new Map();
     this.userMessageCounts = new Map(); // Track messages per user for rate limiting
@@ -15,7 +15,7 @@ class WebSocketManager {
     this.maxMessagesPerWindow = 60; // 1 message per second average
 
     this.init();
-    this.setupPubSub();
+    this.setupPubSub().catch(err => logger.error('WebSocket Pub/Sub setup failed:', err));
   }
 
   init() {
@@ -56,15 +56,23 @@ class WebSocketManager {
 
   authenticate(req) {
     try {
-      const url = new URL(req.url, `http://${req.headers.host}`);
-      let token = url.searchParams.get('token');
+      let token = null;
 
-      // Fallback to cookies if token isn't in query params
-      if (!token && req.headers.cookie) {
+      // Prioritize HttpOnly cookies for better security
+      if (req.headers.cookie) {
         const cookies = Object.fromEntries(
-          req.headers.cookie.split('; ').map(c => c.split('='))
+          req.headers.cookie.split('; ').map(c => {
+            const [key, ...vals] = c.split('=');
+            return [key.trim(), vals.join('=')];
+          })
         );
         token = cookies.token;
+      }
+
+      // Fallback to query params if absolutely necessary (e.g., cross-origin or non-browser clients)
+      if (!token) {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        token = url.searchParams.get('token');
       }
 
       if (!token) {
@@ -77,12 +85,18 @@ class WebSocketManager {
 
       return {
         success: true,
-        userId: decoded.userId || decoded.id, // Support both formats found in the app
+        userId: decoded.userId || decoded.id,
         role: decoded.role
       };
     } catch (error) {
-      logger.error('WebSocket Authentication Error:', error.message);
-      return { success: false, message: 'Invalid or expired token' };
+      if (error.name === 'TokenExpiredError') {
+        return { success: false, message: 'Session expired' };
+      }
+      logger.error('WebSocket Authentication Failure:', {
+        error: error.message,
+        ip: req.socket.remoteAddress
+      });
+      return { success: false, message: 'Invalid token' };
     }
   }
 

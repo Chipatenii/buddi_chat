@@ -1,9 +1,15 @@
 import axios from 'axios';
-import crypto from 'crypto';
 
 // Configuration
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const API_TIMEOUT = 15000; // 15 seconds
+
+const getRequestId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).substring(2, 15);
+};
 
 // Create Axios instance
 const api = axios.create({
@@ -11,7 +17,7 @@ const api = axios.create({
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
-    'X-Request-Id': crypto.randomUUID(), // For request tracing
+    'X-Request-Id': getRequestId(), // For request tracing
   },
   withCredentials: true, // For cookies if using them
 });
@@ -29,6 +35,7 @@ export const fetchCsrfToken = async () => {
 };
 
 // Request Interceptor
+// Request Interceptor
 api.interceptors.request.use(async config => {
   // Add CSRF token for mutating methods
   if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
@@ -41,7 +48,7 @@ api.interceptors.request.use(async config => {
   }
 
   // Add request ID for error tracking
-  config.headers['X-Request-Id'] = crypto.randomUUID();
+  config.headers['X-Request-Id'] = getRequestId();
 
   return config;
 }, error => {
@@ -55,15 +62,12 @@ api.interceptors.request.use(async config => {
 
 // Response Interceptor
 api.interceptors.response.use(response => {
-  // Transform successful responses
-  return {
-    ...response,
-    data: {
-      success: true,
-      ...response.data
-    }
-  };
+  return response;
 }, error => {
+  if (axios.isCancel(error)) {
+    return Promise.reject(error);
+  }
+
   // Structured error handling
   const errorResponse = {
     code: 'UNKNOWN_ERROR',
@@ -73,17 +77,11 @@ api.interceptors.response.use(response => {
   };
 
   if (error.response) {
-    // Handle API error responses
     const { status, data } = error.response;
     errorResponse.status = status;
     errorResponse.code = data.code || `HTTP_${status}`;
     errorResponse.message = data.message || error.message;
     errorResponse.details = data.details;
-
-    // Specific error handling
-    if (status === 401) {
-      window.location.href = '/login?session_expired=true';
-    }
   } else if (error.request) {
     // Handle no response errors
     errorResponse.code = 'NETWORK_ERROR';
@@ -103,10 +101,10 @@ api.interceptors.response.use(response => {
 // API Methods
 export const fetchLoggedInUser = async (signal) => {
   try {
-    const response = await api.get('/me', { signal });
-    return response.data.data;
+    const response = await api.get('/auth/me', { signal });
+    return response.data.user || response.data.data || response.data;
   } catch (error) {
-    if (error.code !== 'HTTP_401') { // Skip logging for unauthorized
+    if (error.code !== 'HTTP_401') {
       console.error('Failed to fetch user:', error);
     }
     throw error;
@@ -116,7 +114,7 @@ export const fetchLoggedInUser = async (signal) => {
 export const queryHandler = async (config) => {
   try {
     const response = await api(config);
-    return response.data.data;
+    return response.data.data || response.data.user || response.data;
   } catch (error) {
     console.error('API Request Failed:', error);
     throw error;

@@ -1,100 +1,79 @@
-import { Suspense, lazy, useContext } from 'react';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import ThemeContext from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
 import useAuth from './hooks/useAuth';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useIdleTimer from './hooks/useIdleTimer';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 import PrivateRoute from './components/PrivateRoute';
-import Loader from './components/Loader';
+import { Loader } from './components/ui';
 import OfflineBanner from './components/OfflineBanner';
 import SessionTimeoutModal from './components/SessionTimeoutModal';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import BottomNav from './components/BottomNav';
+import AppShell from './components/AppShell';
 import { AnimatePresence } from 'framer-motion';
-import logger from './utils/logger';
 import './index.css';
 
 // Code-split components
 const HomePage = lazy(() => import('./pages/HomePage'));
 const ChatRoomPage = lazy(() => import('./pages/ChatRoomPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
-const ErrorPage = lazy(() => import('./pages/ErrorPage'));
-const LoginPage = lazy(() => import('./pages/LoginPage'));
-const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const AuthScreen = lazy(() => import('./pages/AuthScreen'));
+
+const APP_ROUTES = {
+  HOME: '/',
+  AUTH: '/auth',
+  CHAT: '/chat-room',
+  PROFILE: '/profile/:userId',
+  SETTINGS: '/settings',
+};
 
 const App = () => (
-  <Router>
-    <AppContent />
-  </Router>
+  <ThemeProvider>
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
+  </ThemeProvider>
 );
 
 const AppContent = () => {
   const location = useLocation();
-  const { theme } = useContext(ThemeContext);
-  const { user, loading, error, logout } = useAuth();
+  const { theme } = useTheme();
+  const { user, loading, logout } = useAuth();
   const isOnline = useOnlineStatus();
   const { isIdle, remaining } = useIdleTimer(300000, logout);
 
   if (loading) return <Loader fullScreen />;
 
   return (
-    <div className={`app ${theme}`}>
+    <div className={`app-container ${theme}`} data-theme={theme}>
       {!isOnline && <OfflineBanner />}
       {isIdle && <SessionTimeoutModal remaining={remaining} onStay={logout} />}
       
-      <Header user={user} />
-      
-      <main className="main-content">
-        <Suspense fallback={<Loader />}>
-          <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
-            <Route path="/" element={
-              <RouteErrorBoundary>
-                <HomePage user={user} />
-              </RouteErrorBoundary>
-            } />
-            
-            <Route path="/login" element={
-              <RouteErrorBoundary>
-                <LoginPage />
-              </RouteErrorBoundary>
-            } />
-
-            <Route path="/register" element={
-              <RouteErrorBoundary>
-                <RegisterPage />
-              </RouteErrorBoundary>
-            } />
-            
-            <Route element={<PrivateRoute user={user} />}>
-              <Route path="/chat-room" element={
-                <RouteErrorBoundary>
-                  <ChatRoomPage />
-                </RouteErrorBoundary>
-              } />
-              <Route path="/settings" element={
-                <RouteErrorBoundary>
-                  <SettingsPage />
-                </RouteErrorBoundary>
-              } />
-              <Route path="/profile/:userId" element={
-                <RouteErrorBoundary>
-                  <UserProfilePage />
-                </RouteErrorBoundary>
-              } />
-            </Route>
-            
-            <Route path="*" element={<ErrorPage />} />
-          </Routes>
-          </AnimatePresence>
-        </Suspense>
-      </main>
-      
-      <BottomNav />
-      <Footer />
+      <Suspense fallback={<Loader fullScreen />}>
+        <AnimatePresence mode="wait">
+          {!user ? (
+            <Routes location={location} key="auth-routes">
+              <Route path={APP_ROUTES.AUTH} element={<AuthScreen />} />
+              {/* Redirect legacy auth routes */}
+              <Route path="/login" element={<Navigate to={APP_ROUTES.AUTH} replace />} />
+              <Route path="/register" element={<Navigate to={APP_ROUTES.AUTH} replace />} />
+              <Route path="*" element={<Navigate to={APP_ROUTES.AUTH} replace />} />
+            </Routes>
+          ) : (
+            <AppShell user={user}>
+              <Routes location={location} key="app-routes">
+                <Route path={APP_ROUTES.HOME} element={<HomePage user={user} />} />
+                <Route path={APP_ROUTES.CHAT} element={<ChatRoomPage />} />
+                <Route path={APP_ROUTES.PROFILE} element={<UserProfilePage />} />
+                <Route path={APP_ROUTES.SETTINGS} element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to={APP_ROUTES.HOME} replace />} />
+              </Routes>
+            </AppShell>
+          )}
+        </AnimatePresence>
+      </Suspense>
     </div>
   );
 };

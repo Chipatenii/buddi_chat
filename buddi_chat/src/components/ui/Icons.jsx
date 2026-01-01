@@ -18,6 +18,4 @@ export const IconAlert = ({ size = 16 }) => (
   </svg>
 );
 
-Icons.propTypes = {
-  size: PropTypes.number
-};
+

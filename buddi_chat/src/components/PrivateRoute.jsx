@@ -1,12 +1,11 @@
-import { useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import logger from '../utils/logger';
-import useAuth from '../hooks/useAuth';
+import Loader from './Loader';
 
-const PrivateRoute = ({ children, requiredRoles = [] }) => {
+const PrivateRoute = ({ user, loading, error, requiredRoles = [] }) => {
   const location = useLocation();
-  const { user, loading, error } = useAuth();
   const currentPath = location.pathname + location.search;
 
   useEffect(() => {
@@ -19,7 +18,7 @@ const PrivateRoute = ({ children, requiredRoles = [] }) => {
   }, [loading, user, error, currentPath]);
 
   if (loading) {
-    return <div className="security-placeholder" />; // Use your <Loader> component instead
+    return <Loader fullScreen />;
   }
 
   if (!user) {
@@ -44,16 +43,11 @@ const PrivateRoute = ({ children, requiredRoles = [] }) => {
     return <Navigate to="/error" state={{ code: 403 }} replace />;
   }
 
-  // Add additional security checks here if needed
-  // if (user.needsPasswordReset) {
-  //   return <Navigate to="/reset-password" replace />;
-  // }
-
-  return children;
+  return <Outlet />;
 };
 
 PrivateRoute.propTypes = {
-  children: PropTypes.node.isRequired,
+  user: PropTypes.object,
   requiredRoles: PropTypes.arrayOf(PropTypes.oneOf([
     'user', 
     'moderator', 

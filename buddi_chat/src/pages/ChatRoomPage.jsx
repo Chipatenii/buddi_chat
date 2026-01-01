@@ -1,168 +1,145 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Users as UsersIcon, Send } from 'lucide-react';
+import { motion } from 'framer-motion';
 import ChatSidebar from '../components/ChatSidebar';
 import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
-import { connectWebSocket, closeWebSocket, sendMessage } from '../services/webSocketService';
-import { fetchLoggedInUser, apiWrapper } from '../services/apiService';
-import { Button } from './ui';
+import AiSummaryPanel from '../components/AiSummaryPanel';
+import api from '../services/apiService';
+import webSocketService from '../services/webSocketService';
+import useAuth from '../hooks/useAuth';
+import { ChatSkeleton } from '../components/ui';
 
 const ChatRoomPage = () => {
+    const { user } = useAuth();
     const [messages, setMessages] = useState([]);
-    const [currentRoom] = useState('General');
-    const [loggedInUser, setLoggedInUser] = useState(null);
+    const [activeUsers, setActiveUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [aiSummary, setAiSummary] = useState(null);
+    const [sending, setSending] = useState(false);
+    const [summary, setSummary] = useState('');
     const [summarizing, setSummarizing] = useState(false);
-    const scrollRef = useRef(null);
-    const navigate = useNavigate();
+    const messagesEndRef = useRef(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchInitialData = async () => {
             try {
-                const user = await fetchLoggedInUser();
-                setLoggedInUser(user);
-            } catch (error) {
-                console.error('Error fetching logged-in user:', error);
-                navigate('/login'); 
-            } finally {
+                const [msgsRes, usersRes] = await Promise.all([
+                    api.get('/messages/recent'),
+                    api.get('/users/active')
+                ]);
+                setMessages(msgsRes.data || msgsRes || []);
+                setActiveUsers(usersRes.data || usersRes || []);
+                setLoading(false);
+                setTimeout(scrollToBottom, 100);
+            } catch (err) {
+                console.error('Error fetching chat data:', err);
                 setLoading(false);
             }
         };
-        fetchData();
-    }, [navigate]);
 
-    useEffect(() => {
-        if (!loggedInUser) return;
-        connectWebSocket((newMessage) => {
-            setMessages((prev) => [...prev, newMessage]);
+        fetchInitialData();
+
+        webSocketService.connect();
+        const unsubscribe = webSocketService.subscribe((event) => {
+            if (event.type === 'NEW_MESSAGE') {
+                setMessages(prev => [...prev, event.data]);
+                scrollToBottom();
+            } else if (event.type === 'USER_LIST_UPDATE') {
+                setActiveUsers(event.data);
+            }
         });
-        return () => closeWebSocket();
-    }, [loggedInUser]);
 
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        return () => {
+            unsubscribe();
+            webSocketService.disconnect();
+        };
+    }, []);
+
+    const handleSendMessage = async (content) => {
+        if (!content.trim()) return;
+        setSending(true);
+        try {
+            await api.post('/messages', { content });
+            setSending(false);
+        } catch (err) {
+            console.error('Failed to send message:', err);
+            setSending(false);
         }
-    }, [messages]);
+    };
 
-    const handleSummarize = async () => {
-        if (summarizing) return;
+    const handleGenerateSummary = async () => {
         setSummarizing(true);
         try {
-            const roomId = "60d5f5e3f1d2c123456789ab"; // Placeholder
-            const response = await apiWrapper.get(`/chat/${roomId}/summarize`);
-            setAiSummary(response.summary);
-        } catch (error) {
-            console.error('Summarization failed:', error);
-        } finally {
+            const res = await api.get('/ai/summary');
+            setSummary(res.data?.summary || res.summary || '');
+            setSummarizing(false);
+        } catch (err) {
+            console.error('Failed to generate summary:', err);
             setSummarizing(false);
         }
     };
 
-    const handleSendMessage = (content) => {
-        if (!loggedInUser) return;
-        const newMessage = {
-            user: loggedInUser,
-            content,
-            timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, newMessage]);
-        sendMessage(newMessage);
-    };
-
-    if (loading) return null;
+    if (loading) return <ChatSkeleton />;
 
     return (
-        <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="d-flex flex-column h-100"
-            style={{ height: 'calc(100vh - 5rem)' }}
-        >
-            <div className="d-flex flex-grow-1 overflow-hidden">
-                <div className="hide-mobile" style={{ width: '300px' }}>
-                    <ChatSidebar />
+        <div className="d-flex flex-column h-100 bg-main">
+            {/* Header / Info Area */}
+            <div className="px-4 py-3 border-bottom border-color bg-surface-low d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 className="fw-bold m-0">Global Chat Room</h5>
+                    <div className="small text-secondary d-flex align-items-center gap-1">
+                        <span className="w-2 h-2 rounded-circle bg-accent animate-pulse" style={{ width: 8, height: 8 }}></span>
+                        {activeUsers.length} people online
+                    </div>
                 </div>
-                
-                <main className="flex-grow-1 d-flex flex-column bg-transparent position-relative">
-                    {/* Header */}
-                    <div className="px-4 py-3 d-flex justify-content-between align-items-center glass-card mx-3 mt-3">
-                        <div>
-                            <h5 className="m-0 fw-bold">{currentRoom}</h5>
-                            <span className="small text-success d-flex align-items-center gap-1">
-                                <span className="rounded-circle bg-success" style={{ width: 6, height: 6 }} />
-                                12 online
-                            </span>
-                        </div>
-                        <Button 
-                            variant="secondary" 
-                            size="sm"
-                            onClick={handleSummarize}
-                            loading={summarizing}
-                            className="d-flex align-items-center gap-2"
-                        >
-                            <Sparkles size={16} />
-                            Summarize
-                        </Button>
-                    </div>
-
-                    {/* Summary Alert */}
-                    <AnimatePresence>
-                        {aiSummary && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                className="mx-3 mt-3 px-3 py-2 glass-card border-primary"
-                                style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)' }}
-                            >
-                                <div className="d-flex justify-content-between align-items-start">
-                                    <div className="d-flex gap-2">
-                                        <Sparkles size={18} className="text-primary mt-1" />
-                                        <div>
-                                            <strong className="small text-primary d-block">AI Catch-up</strong>
-                                            <p className="small mb-0 opacity-75">{aiSummary}</p>
-                                        </div>
-                                    </div>
-                                    <button className="btn-close btn-close-white small" onClick={() => setAiSummary(null)} />
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Messages */}
-                    <div 
-                        ref={scrollRef}
-                        className="flex-grow-1 overflow-auto px-4 py-4 d-flex flex-column mt-2"
-                        style={{ scrollBehavior: 'smooth' }}
-                    >
-                        {messages.length === 0 ? (
-                            <div className="flex-center flex-column text-center opacity-50 m-auto">
-                                <div className="p-4 rounded-circle bg-surface-dark mb-3">
-                                    <Send size={48} className="text-primary" />
-                                </div>
-                                <p className="small">No messages yet.<br/>Be the first to say hello!</p>
-                            </div>
-                        ) : (
-                            messages.map((msg, index) => (
-                                <ChatMessage
-                                    key={index}
-                                    message={msg}
-                                    isSent={msg.user?._id === loggedInUser?._id}
-                                />
-                            ))
-                        )}
-                    </div>
-
-                    {/* Input */}
-                    <ChatInput onSend={handleSendMessage} />
-                </main>
             </div>
-        </motion.div>
+
+            <div className="flex-grow-1 overflow-hidden d-flex flex-column flex-lg-row">
+                {/* Chat Container */}
+                <div className="flex-grow-1 d-flex flex-column h-100 overflow-hidden position-relative">
+                    {/* Messages Area */}
+                    <div className="flex-grow-1 overflow-auto px-1 py-4 custom-scrollbar">
+                        <div className="container-fluid" style={{ maxWidth: '900px' }}>
+                            <AiSummaryPanel 
+                                summary={summary} 
+                                onRefresh={handleGenerateSummary} 
+                                loading={summarizing} 
+                            />
+                            
+                            <div className="d-flex flex-column gap-2 mb-4">
+                                {messages.map((msg, index) => {
+                                    const isPrevFromSameUser = index > 0 && messages[index - 1].user?.id === msg.user?.id;
+                                    return (
+                                        <ChatMessage 
+                                            key={msg.id || index} 
+                                            message={msg} 
+                                            isSent={msg.user?.id === user?.id}
+                                            hideUser={isPrevFromSameUser}
+                                        />
+                                    );
+                                })}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Input Area */}
+                    <div className="border-top border-color bg-surface-low backdrop-blur-md">
+                        <div className="container-fluid px-4 py-3" style={{ maxWidth: '900px' }}>
+                            <ChatInput onSend={handleSendMessage} disabled={sending} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sidebar - Desktop Only */}
+                <div className="d-none d-lg-block border-start border-color bg-surface-low" style={{ width: '320px' }}>
+                    <ChatSidebar users={activeUsers} />
+                </div>
+            </div>
+        </div>
     );
 };
 

@@ -6,7 +6,7 @@ import { APP_ROUTES, SUPPORT_CONTACT } from '../constants';
 import logger from '../utils/logger';
 import ErrorIllustration from '../components/ErrorIllustration';
 
-const ErrorPage = ({ error }) => {
+const ErrorPage = ({ error = null }) => {
   const location = useLocation();
   const stateError = location.state?.error;
   const currentError = error || stateError;
@@ -91,7 +91,7 @@ const ErrorPage = ({ error }) => {
       </div>
 
       {/* Debug information */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.MODE === 'development' && (
         <details className="error-stack">
           <summary>Technical Details</summary>
           <pre>
@@ -103,6 +103,7 @@ const ErrorPage = ({ error }) => {
   );
 };
 
+
 ErrorPage.propTypes = {
   error: PropTypes.shape({
     code: PropTypes.number,
@@ -110,10 +111,6 @@ ErrorPage.propTypes = {
     details: PropTypes.string,
     stack: PropTypes.string
   })
-};
-
-ErrorPage.defaultProps = {
-  error: null
 };
 
 export default ErrorPage;

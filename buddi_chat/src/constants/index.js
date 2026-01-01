@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
   TIMEOUT: 15000,
   RETRIES: 3
 };
@@ -55,3 +55,5 @@ export const ROUTES = {
   PROFILE: '/profile',
   SETTINGS: '/settings'
 };
+
+export const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?background=6366f1&color=fff&name=User';

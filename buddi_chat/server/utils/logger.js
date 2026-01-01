@@ -12,7 +12,8 @@ if (!fs.existsSync(logDir)) {
 
 // Custom format for development
 const devFormat = printf(({ level, message, timestamp, stack }) => {
-  return `${timestamp} [${level}]: ${stack || message}`;
+  const logMessage = stack ? `${message}\n${stack}` : message;
+  return `${timestamp} [${level}]: ${logMessage}`;
 });
 
 // Custom format for production

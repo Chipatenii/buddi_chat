@@ -1,6 +1,5 @@
 import logger from '../utils/logger';
 import { fetchLoggedInUser } from './apiService';
-import crypto from 'crypto';
 
 const WS_CONFIG = {
   RECONNECT_BASE_DELAY: 1000,
@@ -24,7 +23,7 @@ class WebSocketService {
 
     try {
       const user = await fetchLoggedInUser();
-      this.connectionId = crypto.randomUUID();
+      this.connectionId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
 
       const wsURL = new URL(import.meta.env.VITE_WS_URL || 'ws://localhost:5001');
       wsURL.searchParams.set('connectionId', this.connectionId);

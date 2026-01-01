@@ -43,8 +43,16 @@ const mongooseConfig = {
 mongoose.connect(process.env.MONGO_URI, mongooseConfig)
   .then(() => logger.info('✅ MongoDB connection established'))
   .catch((err) => {
-    logger.error('❌ MongoDB connection error:', err);
-    process.exit(1);
+    logger.error('❌ MongoDB connection failed. Please ensure MongoDB is running and MONGO_URI is correct.', {
+      error: err.message,
+      uri: process.env.MONGO_URI?.replace(/:([^:@]+)@/, ':****@') // Obfuscate password in URI
+    });
+    // In dev, we might not want to exit immediately to allow other services to stay up
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    } else {
+      logger.warn('Continuing without MongoDB (some features will be unavailable)');
+    }
   });
 
 mongoose.connection.on('disconnected', () =>
@@ -61,16 +69,25 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [
+  'http://localhost:3000',
+  'http://localhost:5173'
+];
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Request-Id'],
   credentials: true,
   maxAge: 600,
-  preflightContinue: false,
 }));
 
 // ======================== Rate Limiting ========================
@@ -119,6 +136,9 @@ app.use((req, res, next) => {
 });
 
 // CSRF endpoint
+app.get('/api/csrf', generateCsrfToken);
+
+// CSRF token endpoint
 app.get('/api/csrf', generateCsrfToken);
 
 // Apply CSRF protection to mutating routes

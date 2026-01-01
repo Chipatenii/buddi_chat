@@ -46,10 +46,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "default-avatar.jpg",
       validate: {
-        validator: function(v) {
-          return validator.isURL(v, { protocols: ['http','https'], require_protocol: true });
+        validator: function (v) {
+          // Allow internal paths, buffers (as strings), or valid URLs
+          return typeof v === 'string' && (v.length > 0);
         },
-        message: "Profile picture must be a valid URL"
+        message: "Invalid profile picture format"
       }
     },
     altText: {
@@ -101,27 +102,27 @@ userSchema.index({ role: 1, active: 1 });
 userSchema.index({ lastLogin: -1 });
 
 // Virtuals
-userSchema.virtual("avatarURL").get(function() {
-  return this.profilePicture 
+userSchema.virtual("avatarURL").get(function () {
+  return this.profilePicture
     ? `/uploads/users/${this.profilePicture}`
     : '/images/default-avatar.jpg';
 });
 
 // Password encryption middleware
-userSchema.pre("save", async function(next) {
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  
+
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordUpdatedAt = Date.now() - 1000; // Ensure timestamp before save
   next();
 });
 
 // Instance methods
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   if (this.passwordUpdatedAt) {
     const changedTimestamp = parseInt(this.passwordUpdatedAt.getTime() / 1000, 10);
     return JWTTimestamp < changedTimestamp;
@@ -129,19 +130,19 @@ userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
   return false;
 };
 
-userSchema.methods.createPasswordResetToken = function() {
+userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString("hex");
   this.passwordResetToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-  
+
   return resetToken;
 };
 
 // Query middleware to filter out inactive users
-userSchema.pre(/^find/, function(next) {
+userSchema.pre(/^find/, function (next) {
   this.find({ active: { $ne: false } });
   next();
 });
