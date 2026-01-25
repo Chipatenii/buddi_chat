@@ -4,7 +4,7 @@ import User from './models/User.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/buddi_chat';
+const MONGO_URI = 'mongodb+srv://innocentmanda70:%40Eleanor0422@buddichat.i6vfdov.mongodb.net/?appName=buddichat';
 
 async function createTestUser() {
     try {
